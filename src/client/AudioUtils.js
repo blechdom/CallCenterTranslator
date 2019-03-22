@@ -22,9 +22,9 @@ function playAudioBuffer(audioFromString, context, continuous){
     source.disconnect();
     active_source=false;
   }
-  if(continuous){
-    stopStreaming(context);
-  }
+  //if(continuous){
+  //  stopStreaming(context);
+  //}
 
   context.decodeAudioData(audioFromString, function (buffer) {
       active_source = true;
@@ -106,13 +106,12 @@ function microphoneProcess(e) {
 
 function startStreaming(context) {
   console.log("starting input");
-  socket.emit("startStreaming", true);
+  //socket.emit("startStreaming", true);
   initRecording(context);
 }
 
 function stopStreaming(context) {
   console.log("stop input");
-  socket.emit("stopStreaming", true);
   let track = globalStream.getTracks()[0];
   track.stop();
   if(input){
@@ -146,4 +145,4 @@ var downsampleBuffer = function (buffer, sampleRate, outSampleRate) {
     }
     return result.buffer;
 }
-export { base64ToBuffer, playAudioBuffer, disconnectSource, startStreaming, stopStreaming }
+export { base64ToBuffer, disconnectSource, startStreaming, stopStreaming}

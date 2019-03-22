@@ -223,36 +223,40 @@ io.on('connection', socket => {
         otherCallersVoiceCode = userlanguages[i];
       }
     }
-    var translateLanguageCode = otherCallersVoiceCode.substring(0, 2); //en
-    var target = translateLanguageCode;
-    console.log("translating into " + target);
-    var text = clientData[socket.id].translateText;
-    console.log("text to translate: " + text);
-    let [translations] = await clientData[socket.id].translate.translate(text, target);
-    translations = Array.isArray(translations) ? translations : [translations];
-    var translation_concatenated = "";
-    translations.forEach((translation, i) => {
-      translation_concatenated += translation + " ";
-    });
-    clientData[socket.id].ttsText = translation_concatenated;
-    socket.broadcast.emit("getTranslation", translation_concatenated);
+    if(otherCallersVoiceCode){
+      var translateLanguageCode = otherCallersVoiceCode.substring(0, 2); //en
+      var target = translateLanguageCode;
+      console.log("translating into " + target);
+      var text = clientData[socket.id].translateText;
+      console.log("text to translate: " + text);
+      let [translations] = await clientData[socket.id].translate.translate(text, target);
+      translations = Array.isArray(translations) ? translations : [translations];
+      var translation_concatenated = "";
+      translations.forEach((translation, i) => {
+        translation_concatenated += translation + " ";
+      });
+      clientData[socket.id].ttsText = translation_concatenated;
+      socket.broadcast.emit("getTranslation", translation_concatenated);
 
-    var ttsRequest = {
-      voice: {languageCode: otherCallersVoiceCode.substring(0,5), name: otherCallersVoiceCode},
-      audioConfig: {audioEncoding: 'LINEAR16'},
-      input: {text: clientData[socket.id].ttsText}
-    };
+      var ttsRequest = {
+        voice: {languageCode: otherCallersVoiceCode.substring(0,5), name: otherCallersVoiceCode},
+        audioConfig: {audioEncoding: 'LINEAR16'},
+        input: {text: clientData[socket.id].ttsText}
+      };
 
-    const [response] = await clientData[socket.id].ttsClient.synthesizeSpeech(ttsRequest);
-    const writeFile = util.promisify(fs.writeFile);
-    await writeFile('audio/' + socket.id + '.wav', response.audioContent, 'binary');
+      const [response] = await clientData[socket.id].ttsClient.synthesizeSpeech(ttsRequest);
+      const writeFile = util.promisify(fs.writeFile);
+      await writeFile('audio/' + socket.id + '.wav', response.audioContent, 'binary');
 
 
-    const audioFile = fs.readFileSync('audio/' + socket.id + '.wav');
-    const audioBase64 = new Buffer.from(audioFile).toString('base64');
-    console.log("audio file written " + socket.id + '.wav');
-    socket.broadcast.emit('audiodata', audioBase64);
-
+      const audioFile = fs.readFileSync('audio/' + socket.id + '.wav');
+      const audioBase64 = new Buffer.from(audioFile).toString('base64');
+      console.log("audio file written " + socket.id + '.wav');
+      socket.broadcast.emit('audiodata', audioBase64);
+    }
+    else{
+      console.log("no other caller yet");
+    }
   }
     function startStreaming(speakToo) {
       var sttRequest = {
@@ -267,7 +271,7 @@ io.on('connection', socket => {
         interimResults: true
       };
 
-      console.log("startStream request " + JSON.stringify(sttRequest, null, 4));
+      //console.log("startStream request " + JSON.stringify(sttRequest, null, 4));
       clientData[socket.id].recognizeStream = clientData[socket.id].speechClient
         .streamingRecognize(sttRequest)
         .on('error', (error) => {
