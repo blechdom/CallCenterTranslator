@@ -3,42 +3,35 @@ import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 import MultilineOutput from './MultilineOutput';
 import Button from '@material-ui/core/Button';
-import { startStreaming, stopStreaming, base64ToBuffer, disconnectSource } from './AudioUtils';
+import { startStreaming, stopStreaming } from './AudioUtils';
 
-  let concatText = '',
-    newText = '',
-    source = null,
-    bufferSize = 2048,
-    audioBuffer = null,
-    active_source = false,
-    processor,
-    input,
-    globalStream;
+let source = null;
+let audioBuffer = null;
+let active_source = false;
 
 class CCConversation extends React.Component {
-
   constructor(props) {
     super(props);
     this.state = {
       audio: false,
-      socket: this.props.socket
+      socket: this.props.socket,
+      micText: 'Click to Start',
+      started: false
     };
     this.toggleListen = this.toggleListen.bind(this);
     this.playAudioBuffer = this.playAudioBuffer.bind(this);
   }
 
   componentDidMount() {
-
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
     this.state.socket.on('audiodata', (data) => {
-      var audioFromString = base64ToBuffer(data);
       this.stopListening();
-      this.playAudioBuffer(audioFromString, this.audioContext, true);
-
+      this.playAudioBuffer(data, this.audioContext, true);
     });
     this.toggleListen();
   }
+
   componentWillUnmount() {
     this.stopListening();
     this.audioContext.close();
@@ -49,38 +42,33 @@ class CCConversation extends React.Component {
     if(!this.state.audio){
       this.state.socket.emit("startStreaming", true);
       startStreaming(this.audioContext);
-      this.setState({audio: true});
-      console.log("startListening");
+      this.setState({audio: true, started: true});
     }
   }
   stopListening(){
     if(this.state.audio){
       this.state.socket.emit("stopStreaming", true);
-      this.setState({audio:false});
+      this.setState({audio: false});
       stopStreaming(this.audioContext);
-      console.log("stopListening");
     }
   }
   toggleListen() {
-
-      if (this.state.audio) {
-        this.stopListening();
-      } else {
-        this.startListening();
-      }
+    if (!this.state.started) {
+      this.setState({micText: 'Mic Muted', started: true});
     }
+    if (this.state.audio) {
+      this.stopListening();
+    } else {
+      this.startListening();
+    }
+  }
 
-  playAudioBuffer(audioFromString, context, continuous){
-
+  playAudioBuffer(audioFromString, context) {
     if (active_source){
       source.stop(0);
       source.disconnect();
       active_source=false;
     }
-    //if(continuous){
-    //  stopStreaming(context);
-    //}
-
     context.decodeAudioData(audioFromString, (buffer) => {
         active_source = true;
         audioBuffer = buffer;
@@ -89,11 +77,9 @@ class CCConversation extends React.Component {
         source.loop = false;
         source.connect(context.destination);
         source.start(0);
-        //this.setState({audio:false});
         active_source = true;
         source.onended = (event) => {
-          console.log('audio playback stopped');
-          if(continuous){
+          if (this.state.started) {
             this.startListening();
           }
         };
@@ -105,11 +91,11 @@ class CCConversation extends React.Component {
     return (
       <React.Fragment>
         <Grid container spacing={24}>
-          <Grid item xs={12} zeroMinWidth>
-            <Button variant="contained" color="primary" onClick={this.toggleListen}>{this.state.audio ? 'Mic Active' : 'Mic Muted'}</Button>
+          <Grid item xs={12}>
+            <Button variant="contained" color={this.state.audio ? 'secondary' : 'primary'} onClick={this.toggleListen}>{this.state.audio ? 'Mic Active' : this.state.micText}</Button>
           </Grid>
-          <Grid item xs={12} zeroMinWidth>
-            <MultilineOutput socket={this.state.socket} speakToo="true" />
+          <Grid item xs={12}>
+            <MultilineOutput socket={this.state.socket}/>
           </Grid>
         </Grid>
       </React.Fragment>

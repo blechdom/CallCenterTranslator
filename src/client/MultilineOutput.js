@@ -4,26 +4,31 @@ import ReactDOM from 'react-dom';
 import { withStyles } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
+import Paper from '@material-ui/core/Paper';
 import HeadsetIcon from '@material-ui/icons/HeadsetMicTwoTone';
 import PersonIcon from '@material-ui/icons/PersonOutlineTwoTone';
 
 
 const styles = theme => ({
-  root: {
+  paper: {
     flexGrow: 1,
+    height: '40vh',
+  	overflowY: 'scroll',
+    margin: theme.spacing.unit * 2,
+    padding: theme.spacing.unit * 2,
   },
   pendingText: {
-    color: '#b7e1cd',
+    color: '#ee918d',
     display:"block",
 
   },
   finalText: {
-    color: '#809d8f',
+    color: '#000000',
     display:"block",
 
   },
   translatedText: {
-    color: '#ee918d',
+    color: '#b7e1cd',
     display:"block",
   },
 
@@ -72,7 +77,15 @@ class MultilineOutput extends React.Component {
         this.setState({newText: ''});
         this.setState({isFinal: false});
       });
+      this.scrollToBottom();
+  }
 
+  scrollToBottom = () => {
+    this.messagesEnd.scrollIntoView({ behavior: "smooth" });
+  }
+
+  componentDidUpdate() {
+    this.scrollToBottom();
   }
 
   componentWillUnmount(){
@@ -83,11 +96,16 @@ class MultilineOutput extends React.Component {
 
   render() {
     const { classes } = this.props;
+
     return (
-      <div className={classes.root}>
-      <Typography component="h1" variant="h5">
-      {this.state.outputText}
-      </Typography>
+      <div>
+        <Paper elevation={1} className={classes.paper} id="Transcript" ref="Transcript">
+          <Typography component="h1" variant="h5">
+            {this.state.outputText}
+             <div style={{ float:"left", clear: "both" }} ref={(el) => { this.messagesEnd = el; }}>
+             </div>
+          </Typography>
+        </Paper>
       </div>
     );
   }

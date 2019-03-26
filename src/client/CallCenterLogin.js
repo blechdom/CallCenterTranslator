@@ -77,20 +77,20 @@ class CallCenterLogin extends React.Component {
           </Grid>
           <Grid item xs={3}></Grid>
           <Grid item xs={3}>
-          <div>
-            <IconButton aria-label="Agent Login" onClick={this.agentLogin} disabled={this.state.agentDisabled} color='primary'>
-              <HeadsetIcon style={{ fontSize: 70 }}/>
-            </IconButton>
-            <Typography variant="h6" color='primary'>AGENT</Typography>
-          </div>
-            </Grid>
-            <Grid item xs={3}>
-          <div>
-            <IconButton aria-label="Client Login" label='client' onClick={this.clientLogin} disabled={this.state.clientDisabled} color='secondary'>
-              <PersonIcon style={{ fontSize: 70 }}/>
-            </IconButton>
-            <Typography variant="h6" color='secondary'>CLIENT</Typography>
-          </div>
+            <div>
+              <IconButton aria-label="Agent Login" onClick={this.agentLogin} disabled={this.state.agentDisabled} color='primary'>
+                <HeadsetIcon style={{ fontSize: 70 }}/>
+              </IconButton>
+              <Typography variant="h6" color='primary'>AGENT</Typography>
+            </div>
+              </Grid>
+              <Grid item xs={3}>
+            <div>
+              <IconButton aria-label="Client Login" label='client' onClick={this.clientLogin} disabled={this.state.clientDisabled} color='secondary'>
+                <PersonIcon style={{ fontSize: 70 }}/>
+              </IconButton>
+              <Typography variant="h6" color='secondary'>CLIENT</Typography>
+            </div>
           </Grid>
             <Grid item xs={3}></Grid>
         </Grid>
