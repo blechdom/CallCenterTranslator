@@ -7,7 +7,7 @@ import Paper from '@material-ui/core/Paper';
 import AppBar from '@material-ui/core/AppBar';
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
-import ResetIcon from '@material-ui/icons/Autorenew';
+import SettingsIcon from '@material-ui/icons/Settings';
 import Typography from '@material-ui/core/Typography';
 import CallCenterLogin from './CallCenterLogin';
 import CallCenterConversation from './CallCenterConversation';
@@ -18,6 +18,7 @@ const styles = theme => ({
   root: {
       flexGrow: 1,
   },
+
   title: {
     padding: theme.spacing.unit * 2,
      color: 'white',
@@ -52,35 +53,47 @@ const styles = theme => ({
     justifyContent: 'flex-end',
   },
   button: {
-    marginTop: theme.spacing.unit * 3,
-    marginLeft: theme.spacing.unit,
+    //marginTop: theme.spacing.unit * 3,
+    //marginLeft: theme.spacing.unit,
   },
   ResetImg: {
     cursor:'pointer',
     float:'right',
-    marginTop: '0px',
+    marginTop: '-9px',
+    marginRight: '-5px',
     color: 'white',
   },
 });
 
 
 
-class CloudAIDemos extends React.Component {
+class CallCenterTranslator extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      currentForm: <CallCenterLogin socket={socket}/>
+      currentForm: <CallCenterLogin socket={socket}/>,
+      settingsButton: '',
+      titleSpacing: '',
     };
   }
   componentDidMount() {
+    const { classes } = this.props;
     socket.on("resetTranslator", (data) => {
       this.setState({
-        currentForm: <CallCenterLogin socket={socket}/>
+        currentForm: <CallCenterLogin socket={socket}/>,
+        settingsButton: '',
+        titleSpacing: '',
       })
     });
     socket.on("loginToCall", (data) => {
       this.setState({
-        currentForm: <CallCenterConversation socket={socket}/>
+        currentForm: <CallCenterConversation socket={socket}/>,
+        settingsButton: <IconButton
+                          aria-label="Call Settings"
+                          onClick={this.startOver} disabled={this.state.agentDisabled} className={classes.ResetImg} p={-2} m={-2} size="small">
+                          <SettingsIcon p={-2} m={-2}/>
+                        </IconButton>,
+        titleSpacing: '\u00A0\u00A0\u00A0\u00A0\u00A0',
       });
     });
   }
@@ -102,11 +115,10 @@ class CloudAIDemos extends React.Component {
         <main className={classes.layout}>
           <Paper className={classes.paper}>
             <AppBar position="static">
-              <Typography component="h1" variant="h4" className={classes.title} align="center">
+              <Typography component="h1" variant="h4" className={classes.title} align="center" p={0}>
+                {this.state.titleSpacing}
                 Call Center Translator
-                  <IconButton aria-label="Agent Login" onClick={this.startOver} disabled={this.state.agentDisabled} className={classes.ResetImg}>
-                    <ResetIcon />
-                  </IconButton>
+                {this.state.settingsButton}
               </Typography>
             </AppBar>
             <React.Fragment>
@@ -121,8 +133,8 @@ class CloudAIDemos extends React.Component {
   }
 }
 
-CloudAIDemos.propTypes = {
+CallCenterTranslator.propTypes = {
   classes: PropTypes.object.isRequired,
 };
 
-export default withStyles(styles)(CloudAIDemos);
+export default withStyles(styles)(CallCenterTranslator);

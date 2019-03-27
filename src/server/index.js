@@ -98,6 +98,26 @@ io.on('connection', (socket) => {
     socket.emit("loginToCall", true);
   });
 
+  socket.on("getUsername", function(data){
+    const languageName = convertLanguageCodes(clientData[socket.id].voiceCode.substring(0,5));
+    var otherCallersVoiceCode = '';
+    var otherLanguage = '';
+    for(var i in usernames){
+      if(usernames[i] != clientData[socket.id].username){
+        otherCallersVoiceCode = userlanguages[i];
+      }
+    }
+    if(otherCallersVoiceCode){
+      otherLanguage = convertLanguageCodes(otherCallersVoiceCode.substring(0, 5)); //en
+    }
+    const userInfo = {
+      username: clientData[socket.id].username,
+      language: languageName,
+      otherLanguage: otherLanguage
+    };
+      socket.emit("myUsernameIs", userInfo);
+  });
+
   socket.on("resetCall", function(data){
     console.log("resettingCall");
     createNewClient();
@@ -234,11 +254,16 @@ io.on('connection', (socket) => {
     }
   }
   function startStreaming() {
-    var sttRequest = {
+    let langCode = '';
+    if(clientData[socket.id].voiceCode){
+      langCode = clientData[socket.id].voiceCode.substring(0,5);
+    }
+    let sttRequest = {
+
       config: {
           encoding: 'LINEAR16',
           sampleRateHertz: 16000,
-          languageCode: clientData[socket.id].voiceCode.substring(0,5),
+          languageCode: langCode,
           enableAutomaticPunctuation: clientData[socket.id].enableAutomaticPunctuation,
           model: clientData[socket.id].speechModel,
           useEnhanced: clientData[socket.id].useEnhanced

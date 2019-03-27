@@ -7,6 +7,15 @@ import Icon from '@material-ui/core/Icon';
 import IconButton from '@material-ui/core/IconButton';
 import HeadsetIcon from '@material-ui/icons/HeadsetMicTwoTone';
 import PersonIcon from '@material-ui/icons/PersonOutlineTwoTone';
+import withStyles from '@material-ui/core/styles/withStyles';
+
+
+const styles = theme => ({
+  root: {
+      flexGrow: 1,
+      justifyContent: 'center',
+  },
+});
 
 class CallCenterLogin extends React.Component {
 
@@ -58,26 +67,35 @@ class CallCenterLogin extends React.Component {
     this.state.socket.emit("joinCall", "client");
   }
   render(){
+    const { classes } = this.props;
+
     return (
       <React.Fragment>
-      <Grid container direction="row"
-        justify="center"
-        alignItems="center"
-        spacing={32}>
+        <Grid
+        item
+          container
+          direction="row"
+          justify="center"
+          alignItems="center"
+          alignContent="center"
+          spacing={32}>
+
           <Grid item xs={12}>
-        <Typography variant="h4" component="h3" spacing={32}>
-          JOIN THE CALL
-        </Typography>
+            <Typography variant="h4" component="h3" spacing={32} align="center">
+              JOIN THE CALL
+            </Typography>
           </Grid>
           <Grid item xs={12}>
-            <LanguageSelects socket={this.state.socket} speechModel="true"/>
+            <div align="center">
+              <LanguageSelects socket={this.state.socket} speechModel="true"/>
+            </div>
           </Grid>
           <Grid item xs={12}>
-            <Typography variant="h5">Login as...</Typography>
+            <Typography variant="h5" align="center">Login as...</Typography>
           </Grid>
           <Grid item xs={3}></Grid>
           <Grid item xs={3}>
-            <div>
+            <div align="center">
               <IconButton aria-label="Agent Login" onClick={this.agentLogin} disabled={this.state.agentDisabled} color='primary'>
                 <HeadsetIcon style={{ fontSize: 70 }}/>
               </IconButton>
@@ -85,18 +103,19 @@ class CallCenterLogin extends React.Component {
             </div>
               </Grid>
               <Grid item xs={3}>
-            <div>
+            <div align="center">
               <IconButton aria-label="Client Login" label='client' onClick={this.clientLogin} disabled={this.state.clientDisabled} color='secondary'>
                 <PersonIcon style={{ fontSize: 70 }}/>
               </IconButton>
               <Typography variant="h6" color='secondary'>CLIENT</Typography>
             </div>
           </Grid>
-            <Grid item xs={3}></Grid>
+          <Grid item xs={3}></Grid>
+
         </Grid>
       </React.Fragment>
     );
   }
 }
 
-export default CallCenterLogin;
+export default withStyles(styles)(CallCenterLogin);

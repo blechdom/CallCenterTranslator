@@ -3,6 +3,8 @@ import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 import MultilineOutput from './MultilineOutput';
 import Button from '@material-ui/core/Button';
+import HeadsetIcon from '@material-ui/icons/HeadsetMicTwoTone';
+import PersonIcon from '@material-ui/icons/PersonOutlineTwoTone';
 import { startStreaming, stopStreaming } from './AudioUtils';
 
 let source = null;
@@ -16,6 +18,9 @@ class CCConversation extends React.Component {
       audio: false,
       socket: this.props.socket,
       micText: 'Click to Start',
+      username: '',
+      myUsername: '',
+      theirUsername: '',
       started: false
     };
     this.toggleListen = this.toggleListen.bind(this);
@@ -29,6 +34,31 @@ class CCConversation extends React.Component {
       this.stopListening();
       this.playAudioBuffer(data, this.audioContext, true);
     });
+    this.state.socket.emit("getUsername", true);
+    this.state.socket.on("myUsernameIs", (data) => {
+      console.log("I am " + data.username);
+      if(data.username=="agent"){
+        this.setState({
+          username: 'agent',
+          myUsername: <div align='center'><HeadsetIcon style={{ fontSize: 40 }} color='primary'/>
+                      <Typography color='primary'>Agent (you)</Typography>
+                      <Typography color='primary'>{data.language}</Typography></div>,
+          theirUsername: <div align='center'><PersonIcon style={{ fontSize: 40 }} color='secondary'/>
+                        <Typography color='secondary'>Client</Typography>
+                        <Typography color='secondary'>{data.otherLanguage}</Typography></div>
+        });
+      }
+      else{
+        this.setState({
+          username: 'client',
+          myUsername: <div align='center'><PersonIcon style={{ fontSize: 40 }} color='primary'/>
+                      <Typography color='primary'>Client (you)</Typography>
+                      <Typography color='primary'>{data.language}</Typography></div>,
+          theirUsername: <div align='center'><HeadsetIcon style={{ fontSize: 40 }} color='secondary'/>             <Typography color='secondary'>Agent</Typography>
+                        <Typography color='secondary'>{data.otherLanguage}</Typography></div>
+        });
+      }
+    });
     this.toggleListen();
   }
 
@@ -36,6 +66,7 @@ class CCConversation extends React.Component {
     this.stopListening();
     this.audioContext.close();
     this.state.socket.off("audiodata");
+    this.state.socket.off("myUsernameIs");
   }
 
   async startListening(){
@@ -90,12 +121,16 @@ class CCConversation extends React.Component {
   render(){
     return (
       <React.Fragment>
-        <Grid container spacing={24}>
-          <Grid item xs={12}>
-            <Button variant="contained" color={this.state.audio ? 'secondary' : 'primary'} onClick={this.toggleListen}>{this.state.audio ? 'Mic Active' : this.state.micText}</Button>
+        <Grid container spacing={8}>
+          <Grid item xs={3}><div align="center">{this.state.myUsername}</div></Grid>
+          <Grid item xs={6}>
+            <div align="center">
+              <Button variant="contained" color={this.state.audio ? 'secondary' : 'primary'} onClick={this.toggleListen}>{this.state.audio ? 'Mic Active' : this.state.micText}</Button>
+            </div>
           </Grid>
+          <Grid item xs={3}><div align="center">{this.state.theirUsername}</div></Grid>
           <Grid item xs={12}>
-            <MultilineOutput socket={this.state.socket}/>
+            <MultilineOutput socket={this.state.socket} username={this.state.username}/>
           </Grid>
         </Grid>
       </React.Fragment>
