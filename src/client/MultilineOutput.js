@@ -23,26 +23,12 @@ const styles = theme => ({
     margin: theme.spacing.unit,
     padding: theme.spacing.unit,
   },
-  pendingText: {
-    color: '#ee918d',
-    float:"left",
-    padding:"-6",
-    margin:"-6",
-
+  pendingPrimary: {
+    color: '#90caf9'
   },
-  finalText: {
-    color: '#000000',
-    float:"left",
-    padding:"-6",
-    margin:"-6",
-
-  },
-  translatedText: {
-    color: '#b7e1cd',
-    float: "right",
-    padding:"-6",
-    margin:"-6",
-  },
+  pendingSecondary: {
+    color: '#ef9a9a'
+  }
 
 });
 
@@ -75,9 +61,9 @@ class MultilineOutput extends React.Component {
           this.setState({
             outputText:  <div>
                           {this.state.concatText}
-                          <ListItem alignItems='flex-start' dense className={classes.pendingText}>
-                            <ListItemText color='primary'>
-                              <Typography color='primary' variant="h5" gutterBottom>
+                          <ListItem alignItems='flex-start' dense>
+                            <ListItemText className={classes.pendingPrimary}>
+                              <Typography className={classes.pendingPrimary}variant="h5">
                                 {this.state.newText}
                               </Typography>
                             </ListItemText>
@@ -90,8 +76,8 @@ class MultilineOutput extends React.Component {
               concatText: <div>
                             {this.state.concatText}
                             <ListItem alignItems='flex-start' dense>
-                              <ListItemText color='primary'>
-                                <Typography color='primary' variant="h5" gutterBottom>
+                              <ListItemText color='primary[300]'>
+                                <Typography color='primary' variant="h5">
                                 {this.state.newText}
                                 </Typography>
                               </ListItemText>
@@ -105,111 +91,60 @@ class MultilineOutput extends React.Component {
           }
         }
       });
-    /*    socket.on('getTheirTranslation', (response) => {
-          console.log("got a response: " + response);
-          this.setState({newText: response});
-          if (this.state.newText != undefined){
-            this.setState({
-              outputText:  <div>
-                            {this.state.concatText}
-                            <ListItem alignItems='flex-start' dense className={classes.pendingText}>
-                              <ListItemText color='secondary'>
-                                <Typography color='secondary' variant="h6" gutterBottom>
-                                  {this.state.newText}
-                                </Typography>
-                              </ListItemText>
-                            </ListItem>
-                          </div>
-            });
-              if (response.isfinal){
-              this.setState({
-                isFinal: true,
-                concatText: <div>
-                              {this.state.concatText}
-                              <ListItem alignItems='flex-start' dense>
-                                <ListItemText color='secondary'>
-                                  <Typography color='secondary' variant="h6" gutterBottom>
-                                  {this.state.newText}
-                                  </Typography>
-                                </ListItemText>
-                              </ListItem>
-                            </div>,
-              }, () => {
-                this.setState({outputText: <div>{this.state.concatText}</div>
-
-                });
-              });
-            }
-          }
-        });
-*/
+    /*  socket.on('getTheirTranscript', (response) => {
+        console.log("get their transcript " + response);
+      });
+      socket.on('getTheirTranslation', (response) => {
+        console.log("get their transcript " + response);
+      });*/
       socket.on('getTranslation', (response) => {
+        console.log(JSON.stringify(response));
+        this.setState({newTranslation: response.transcript});
+        if (this.state.newTranslation != undefined){
         this.setState({
-          concatText: <div>
-                        {this.state.concatText}
-                        <ListItem dense className={classes.translatedText}>
-                          <ListItemSecondaryAction>
-                            <ListItemText color='secondary'>
-                            <Typography color='secondary' variant="h5" gutterBottom>
-                              {response}
-                              </Typography>
-                            </ListItemText>
-
-
-                          </ListItemSecondaryAction>
-                        </ListItem>
-                      </div>,
           outputText: <div>
                         {this.state.concatText}
-                        <ListItem dense className={classes.translatedText}>
+                        <ListItem dense>
+                        <ListItemText></ListItemText>
                           <ListItemSecondaryAction>
-                            <ListItemText color='secondary'>
-                            <Typography color='secondary' variant="h5" gutterBottom>
-                              {response}
+                            <ListItemText className={classes.pendingSecondary}>
+                            <Typography className={classes.pendingSecondary} variant="h5">
+                              {this.state.newTranslation}
                             </Typography>
                             </ListItemText>
                           </ListItemSecondaryAction>
                         </ListItem>
                       </div>
         });
-        this.setState({newTranslation: ''});
-        this.setState({newText: ''});
-        this.setState({isFinal: false});
-      });
-      /*    socket.on('getTheirTranscript', (response) => {
+        if (response.isfinal){
+          console.log("translation isfinal");
             this.setState({
-              concatText: <div>
-                            {this.state.concatText}
-                            <ListItem dense className={classes.translatedText}>
-                              <ListItemSecondaryAction>
-                                <ListItemText color='primary'>
-                                <Typography color='primary' variant="h6" gutterBottom>
-                                  {response.transcript}
-                                  </Typography>
-                                </ListItemText>
-
-
-                              </ListItemSecondaryAction>
-                            </ListItem>
-                          </div>,
-              outputText: <div>
-                            {this.state.concatText}
-                            <ListItem dense className={classes.translatedText}>
-                              <ListItemSecondaryAction>
-                                <ListItemText color='primary'>
-                                <Typography color='primary' variant="h6" gutterBottom>
-                                  {response.transcript}
+            isFinal: true,
+            concatText: <div>
+                          {this.state.concatText}
+                          <ListItem dense>
+                          <ListItemText></ListItemText>
+                            <ListItemSecondaryAction>
+                              <ListItemText color='secondary'>
+                              <Typography color='secondary' variant="h5">
+                                {this.state.newTranslation}
                                 </Typography>
-                                </ListItemText>
-                              </ListItemSecondaryAction>
-                            </ListItem>
-                          </div>
+                              </ListItemText>
+                            </ListItemSecondaryAction>
+                          </ListItem>
+                        </div>,
+          }, () => {
+            this.setState({outputText: <div>{this.state.concatText}</div>
+
             });
-            this.setState({newTranslation: ''});
-            this.setState({newText: ''});
-            this.setState({isFinal: false});
-          });*/
-      this.scrollToBottom();
+          });
+        }
+        //this.setState({newTranslation: ''});
+        //this.setState({newText: ''});
+        //this.setState({isFinal: false});
+      }
+    });
+    this.scrollToBottom();
   }
 
   scrollToBottom = () => {

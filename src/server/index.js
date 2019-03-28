@@ -43,7 +43,7 @@ io.on('connection', (socket) => {
   createNewClient();
 
   socket.on('translate-text', function(data){
-    clientData[socket.id].translateText = data;
+    clientData[socket.id].translateText.transcript = data;
   });
 
   socket.on('voiceCode', function(data) {
@@ -235,6 +235,40 @@ io.on('connection', (socket) => {
     clientData[socket.id]={};
   });
 
+  async function translateOnly(){
+    var translateLanguageCode = '';
+    var otherCallersVoiceCode = '';
+    for(var i in usernames){
+      if(usernames[i] != clientData[socket.id].username){
+        console.log("other users language to translate mine into is: " + userlanguages[i]);
+        otherCallersVoiceCode = userlanguages[i];
+      }
+    }
+    if(otherCallersVoiceCode){
+      var translateLanguageCode = otherCallersVoiceCode.substring(0, 2); //en
+      var target = translateLanguageCode;
+      console.log("translating into " + target);
+      var text = clientData[socket.id].translateText.transcript;
+      console.log("text to translate: " + text);
+      let [translations] = await clientData[socket.id].translate.translate(text, target);
+      translations = Array.isArray(translations) ? translations : [translations];
+      var translationConcatenated = "";
+      translations.forEach((translation, i) => {
+        translationConcatenated += translation + " ";
+      });
+      clientData[socket.id].ttsText = translationConcatenated;
+      let translatedObject = {
+        transcript: translationConcatenated,
+        isfinal: clientData[socket.id].translateText.isfinal
+      }
+      socket.broadcast.emit("getTranslation", translatedObject);
+      socket.emit("getTheirTranslation", translatedObject);
+    }
+    else{
+      console.log("no other caller yet");
+    }
+  }
+
   async function ttsTranslateAndSendAudio(){
     var translateLanguageCode = '';
     var otherCallersVoiceCode = '';
@@ -248,7 +282,7 @@ io.on('connection', (socket) => {
       var translateLanguageCode = otherCallersVoiceCode.substring(0, 2); //en
       var target = translateLanguageCode;
       console.log("translating into " + target);
-      var text = clientData[socket.id].translateText;
+      var text = clientData[socket.id].translateText.transcript;
       console.log("text to translate: " + text);
       let [translations] = await clientData[socket.id].translate.translate(text, target);
       translations = Array.isArray(translations) ? translations : [translations];
@@ -257,8 +291,12 @@ io.on('connection', (socket) => {
         translationConcatenated += translation + " ";
       });
       clientData[socket.id].ttsText = translationConcatenated;
-      socket.broadcast.emit("getTranslation", translationConcatenated);
-      socket.emit("getTheirTranslation", translationConcatenated);
+      let translatedObject = {
+        transcript: translationConcatenated,
+        isfinal: clientData[socket.id].translateText.isfinal
+      }
+      socket.broadcast.emit("getTranslation", translatedObject);
+      socket.emit("getTheirTranslation", translatedObject);
 
       var ttsRequest = {
         voice: {
@@ -315,12 +353,15 @@ io.on('connection', (socket) => {
           //send text to self in original language
           socket.emit("getTranscript", transcriptObject);
           socket.broadcast.emit("getTheirTranscript", transcriptObject);
+          clientData[socket.id].translateText = transcriptObject;
+          console.log("is final? " + JSON.stringify(clientData[socket.id].translateText));
 
           if(data.results[0].isFinal){
             console.log("translate and send audio to other caller");
-            //translate audio into callers language
-            clientData[socket.id].translateText = transcriptObject.transcript;
             ttsTranslateAndSendAudio();
+          }
+          else{
+            translateOnly();
           }
         }
       });
