@@ -8,15 +8,13 @@ import AppBar from '@material-ui/core/AppBar';
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import SettingsIcon from '@material-ui/icons/Settings';
-import Menu from '@material-ui/core/Menu';
+import MenuList from '@material-ui/core/MenuList';
 import MenuItem from '@material-ui/core/MenuItem';
 import MenuIcon from '@material-ui/icons/Menu';
 import Typography from '@material-ui/core/Typography';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
+import ClickAwayListener from '@material-ui/core/ClickAwayListener';
+import Grow from '@material-ui/core/Grow';
+import Popper from '@material-ui/core/Popper';
 import CallCenterLogin from './CallCenterLogin';
 import CallCenterConversation from './CallCenterConversation';
 import { socket } from './api';
@@ -24,12 +22,13 @@ import { socket } from './api';
 
 const styles = theme => ({
   root: {
-      flexGrow: 1,
+    display: 'flex',
+    flexGrow: 1,
   },
 
   title: {
     padding: theme.spacing.unit * 2,
-     color: 'white',
+    color: 'white',
   },
   layout: {
     width: 'auto',
@@ -60,10 +59,6 @@ const styles = theme => ({
     display: 'flex',
     justifyContent: 'flex-end',
   },
-  button: {
-    //marginTop: theme.spacing.unit * 3,
-    //marginLeft: theme.spacing.unit,
-  },
   SettingsImg: {
     cursor:'pointer',
     float:'right',
@@ -83,38 +78,40 @@ class CallCenterTranslator extends React.Component {
       currentForm: <CallCenterLogin socket={socket}/>,
       settingsButton: '',
       titleSpacing: '',
-      settingsOpen: false,
-      anchorEl: null,
+      open: false,
     };
   }
-  handleClickOpen = () => {
-    this.setState({ settingsOpen: true });
-  };
 
-  handleClickMenu = event => {
-    this.setState({ anchorEl: event.currentTarget });
-    console.log("open " + event.currentTarget);
+  handleToggle = () => {
+    this.setState({ open: !this.state.open });
+    console.log("open " + this.state.open);
   };
   handleMenuClose = event => {
-    this.setState({ anchorEl: null });
-    console.log("close " + event.currentTarget);
+    if (this.anchorEl.contains(event.target)) {
+      return;
+    }
+    this.setState({ open: false });
+    console.log("open " + this.state.close);
   };
 
   handleClose = () => {
-    this.setState({ settingsOpen: false });
+    this.setState({ open: false });
+    socket.emit("leaveCall", true);
   };
   componentDidMount() {
     const { classes } = this.props;
     socket.on("resetTranslator", (data) => {
       this.setState({
+        open: false,
         currentFormNumber: 0,
         currentForm: <CallCenterLogin socket={socket}/>,
         settingsButton: '',
         titleSpacing: '',
-      })
+      });
     });
     socket.on("loginToCall", (data) => {
       this.setState({
+        open: false,
         currentFormNumber: 1,
         currentForm: <CallCenterConversation socket={socket}/>,
         settingsButton: '',
@@ -126,7 +123,7 @@ class CallCenterTranslator extends React.Component {
     socket.off("resetTranslator");
     socket.off("loginToCall");
   }
-  startOver(){
+  startOver = () => {
     console.log("resetting call");
     socket.emit("resetCall", true);
   }
@@ -144,23 +141,33 @@ class CallCenterTranslator extends React.Component {
                 {this.state.titleSpacing}
                 Call Center Translator
                 <IconButton
-                  aria-owns={this.state.anchorEl ? 'simple-menu' : undefined}
+                  buttonRef={node => {
+                    this.anchorEl = node;
+                  }}
+                  aria-owns={this.state.open ? 'translator-menu' : undefined}
                   aria-haspopup="true"
-                  onClick={this.handleClickMenu}
+                  onClick={this.handleToggle}
                   className={classes.SettingsImg}>
                   <MenuIcon />
                 </IconButton>
-                <Menu
-                  id="simple-menu"
-                  anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                  open={Boolean(this.state.anchorEl)}
-                  onClose={this.handleMenuClose}
-                >
-                  {this.state.currentFormNumber ? <MenuItem onClick={this.handleClose}>Leave Call</MenuItem> : undefined}
-                  <MenuItem onClick={this.startOver}>Reset Call</MenuItem>
-                  {this.state.currentFormNumber ? <MenuItem onClick={this.handleClickOpen}>Call Settings</MenuItem> : undefined}
-                </Menu>
+                <Popper open={this.state.open} anchorEl={this.anchorEl} transition disablePortal>
+                  {({ TransitionProps, placement }) => (
+                    <Grow
+                      {...TransitionProps}
+                      id="translator-menu"
+                      style={{ transformOrigin: placement === 'bottom' ? 'center top' : 'center bottom' }}
+                    >
+                      <Paper>
+                        <ClickAwayListener onClickAway={this.handleMenuClose}>
+                          <MenuList>
+                            {this.state.currentFormNumber ? <MenuItem onClick={this.handleClose}>Leave Call</MenuItem> : undefined}
+                            <MenuItem onClick={this.startOver}>Reset Call</MenuItem>
+                          </MenuList>
+                        </ClickAwayListener>
+                      </Paper>
+                    </Grow>
+                  )}
+                </Popper>
               </Typography>
             </AppBar>
             <React.Fragment>
@@ -169,28 +176,6 @@ class CallCenterTranslator extends React.Component {
               </div>
             </React.Fragment>
           </Paper>
-          <Dialog
-            open={this.state.settingsOpen}
-            onClose={this.handleClose}
-            aria-labelledby="form-dialog-title"
-          >
-            <DialogTitle id="form-dialog-title">Settings</DialogTitle>
-            <DialogContent>
-              <DialogContentText>
-                To subscribe to this website, please enter your email address here. We will send
-                updates occasionally.
-              </DialogContentText>
-
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={this.handleClose} color="primary">
-                Cancel
-              </Button>
-              <Button onClick={this.handleClose} color="primary">
-                Subscribe
-              </Button>
-            </DialogActions>
-          </Dialog>
         </main>
       </React.Fragment>
     );

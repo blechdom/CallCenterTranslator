@@ -4,9 +4,7 @@ let bufferSize = 2048,
   processor,
   input,
   globalStream,
-  analyser,
-  source,
-  rafId;
+  analyser;
 
 let startedStreaming = false;
 
@@ -17,41 +15,30 @@ const constraints = {
   video: false
 };
 function animatedStreaming(context, audio){
-  console.log("hello audio is " + audio);
   if(!audio){
     startStreaming(context);
   }
-  else{
-    console.log("in a tick");
+  else {
     if(analyser){
       analyser.getByteTimeDomainData(dataArray);
       return dataArray;
     }
     else return new Uint8Array(0);
-  //  analyser.getByteTimeDomainData(dataArray);
-  //  return dataArray;
   }
-  //return dataArray;
 }
 function startStreaming(context) {
-  console.log("starting to stream");
   startedStreaming = true;
   bufferSize = 2048;
   processor = null;
   input = null;
   globalStream = null;
   analyser = null;
-  source = null;
   dataArray = null;
-  rafId = null;
 
   processor = context.createScriptProcessor(bufferSize, 1, 1);
   processor.connect(context.destination);
-  console.log("connecting to destination");
   context.resume();
-console.log("resume");
   var handleSuccess = function (stream) {
-    console.log("handling success");
     globalStream = stream;
 
     analyser = context.createAnalyser();
@@ -61,7 +48,7 @@ console.log("resume");
       input = context.createMediaStreamSource(stream);
       input.connect(analyser);
 
-      analyser.connect(processor);
+      input.connect(processor);
 
       processor.onaudioprocess = function (e) {
         microphoneProcess(e);
@@ -81,13 +68,13 @@ function microphoneProcess(e) {
 }
 
 function stopStreaming(context) {
-  console.log("stoppingStream")
   if (globalStream) {
     let track = globalStream.getTracks()[0];
     track.stop();
     if(input){
       input.disconnect(processor);
       processor.disconnect();
+      analyser.disconnect();
     }
   }
 

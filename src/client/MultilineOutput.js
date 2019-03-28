@@ -20,8 +20,8 @@ const styles = theme => ({
     flexGrow: 1,
     height: '40vh',
   	overflowY: 'scroll',
-    margin: theme.spacing.unit * 2,
-    padding: theme.spacing.unit * 2,
+    margin: theme.spacing.unit,
+    padding: theme.spacing.unit,
   },
   pendingText: {
     color: '#ee918d',
@@ -72,33 +72,28 @@ class MultilineOutput extends React.Component {
       socket.on('getTranscript', (response) => {
         this.setState({newText: response.transcript});
         if (this.state.newText != undefined){
-          this.setState({outputText:  <div>
-                                        {this.state.concatText}
-                                        <ListItem alignItems='flex-start' dense className={classes.pendingText}>
-                                          <ListItemIcon>
-                                            <Icon color='primary'>
-                                              {this.state.userIcon}
-                                            </Icon>
-                                          </ListItemIcon>
-                                          <ListItemText color='primary'>
-                                            {this.state.newText}
-                                          </ListItemText>
-                                        </ListItem>
-                                      </div>
+          this.setState({
+            outputText:  <div>
+                          {this.state.concatText}
+                          <ListItem alignItems='flex-start' dense className={classes.pendingText}>
+                            <ListItemText color='primary'>
+                              <Typography color='primary' variant="h5" gutterBottom>
+                                {this.state.newText}
+                              </Typography>
+                            </ListItemText>
+                          </ListItem>
+                        </div>
           });
             if (response.isfinal){
             this.setState({
               isFinal: true,
               concatText: <div>
                             {this.state.concatText}
-                            <ListItem alignItems='flex-start' dense color='primary'>
-                              <ListItemIcon>
-                                <Icon color='primary'>
-                                  {this.state.userIcon}
-                                </Icon>
-                              </ListItemIcon>
+                            <ListItem alignItems='flex-start' dense>
                               <ListItemText color='primary'>
+                                <Typography color='primary' variant="h5" gutterBottom>
                                 {this.state.newText}
+                                </Typography>
                               </ListItemText>
                             </ListItem>
                           </div>,
@@ -110,6 +105,44 @@ class MultilineOutput extends React.Component {
           }
         }
       });
+    /*    socket.on('getTheirTranslation', (response) => {
+          console.log("got a response: " + response);
+          this.setState({newText: response});
+          if (this.state.newText != undefined){
+            this.setState({
+              outputText:  <div>
+                            {this.state.concatText}
+                            <ListItem alignItems='flex-start' dense className={classes.pendingText}>
+                              <ListItemText color='secondary'>
+                                <Typography color='secondary' variant="h6" gutterBottom>
+                                  {this.state.newText}
+                                </Typography>
+                              </ListItemText>
+                            </ListItem>
+                          </div>
+            });
+              if (response.isfinal){
+              this.setState({
+                isFinal: true,
+                concatText: <div>
+                              {this.state.concatText}
+                              <ListItem alignItems='flex-start' dense>
+                                <ListItemText color='secondary'>
+                                  <Typography color='secondary' variant="h6" gutterBottom>
+                                  {this.state.newText}
+                                  </Typography>
+                                </ListItemText>
+                              </ListItem>
+                            </div>,
+              }, () => {
+                this.setState({outputText: <div>{this.state.concatText}</div>
+
+                });
+              });
+            }
+          }
+        });
+*/
       socket.on('getTranslation', (response) => {
         this.setState({
           concatText: <div>
@@ -117,12 +150,11 @@ class MultilineOutput extends React.Component {
                         <ListItem dense className={classes.translatedText}>
                           <ListItemSecondaryAction>
                             <ListItemText color='secondary'>
+                            <Typography color='secondary' variant="h5" gutterBottom>
                               {response}
+                              </Typography>
                             </ListItemText>
 
-                              <Icon color='secondary'>
-                                {this.state.otherUserIcon}
-                              </Icon>
 
                           </ListItemSecondaryAction>
                         </ListItem>
@@ -132,13 +164,10 @@ class MultilineOutput extends React.Component {
                         <ListItem dense className={classes.translatedText}>
                           <ListItemSecondaryAction>
                             <ListItemText color='secondary'>
+                            <Typography color='secondary' variant="h5" gutterBottom>
                               {response}
+                            </Typography>
                             </ListItemText>
-
-                              <Icon color='secondary'>
-                                {this.state.otherUserIcon}
-                              </Icon>
-
                           </ListItemSecondaryAction>
                         </ListItem>
                       </div>
@@ -147,6 +176,39 @@ class MultilineOutput extends React.Component {
         this.setState({newText: ''});
         this.setState({isFinal: false});
       });
+      /*    socket.on('getTheirTranscript', (response) => {
+            this.setState({
+              concatText: <div>
+                            {this.state.concatText}
+                            <ListItem dense className={classes.translatedText}>
+                              <ListItemSecondaryAction>
+                                <ListItemText color='primary'>
+                                <Typography color='primary' variant="h6" gutterBottom>
+                                  {response.transcript}
+                                  </Typography>
+                                </ListItemText>
+
+
+                              </ListItemSecondaryAction>
+                            </ListItem>
+                          </div>,
+              outputText: <div>
+                            {this.state.concatText}
+                            <ListItem dense className={classes.translatedText}>
+                              <ListItemSecondaryAction>
+                                <ListItemText color='primary'>
+                                <Typography color='primary' variant="h6" gutterBottom>
+                                  {response.transcript}
+                                </Typography>
+                                </ListItemText>
+                              </ListItemSecondaryAction>
+                            </ListItem>
+                          </div>
+            });
+            this.setState({newTranslation: ''});
+            this.setState({newText: ''});
+            this.setState({isFinal: false});
+          });*/
       this.scrollToBottom();
   }
 
@@ -179,6 +241,8 @@ class MultilineOutput extends React.Component {
     let socket = this.props.socket;
     socket.off("getTranscript");
     socket.off("getTranslation");
+  //  socket.off("getTheirTranscript");
+  //  socket.off("getTheirTranslation");
   }
 
   render() {

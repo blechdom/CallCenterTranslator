@@ -11,21 +11,21 @@ class AudioVisualiser extends Component {
   }
 
   draw() {
-    const { audioData } = this.props;
+    const { audioVizData, color } = this.props;
     const canvas = this.canvas.current;
     const height = canvas.height;
     const width = canvas.width;
     const context = canvas.getContext('2d');
     let x = 0;
-    const sliceWidth = (width * 1.0) / audioData.length;
+    const sliceWidth = (width * 1.0) / audioVizData.length;
 
     context.lineWidth = 2;
-    context.strokeStyle = '#000000';
+    context.strokeStyle = color;
     context.clearRect(0, 0, width, height);
 
     context.beginPath();
     context.moveTo(0, height / 2);
-    for (const item of audioData) {
+    for (const item of audioVizData) {
       const y = (item / 255.0) * height;
       context.lineTo(x, y);
       x += sliceWidth;
@@ -35,7 +35,7 @@ class AudioVisualiser extends Component {
   }
 
   render() {
-    return <canvas width="300" height="300" ref={this.canvas} />;
+    return <canvas width="300" height="80" ref={this.canvas} />;
   }
 }
 

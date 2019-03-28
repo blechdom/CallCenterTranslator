@@ -62,6 +62,7 @@ io.on('connection', (socket) => {
   socket.on("startStreaming", function(data){
     console.log("starting to stream");
     startStreaming();
+    socket.broadcast.emit("theirStatus", "mic-on");
   });
 
   socket.on('binaryStream', function(data) {
@@ -73,6 +74,7 @@ io.on('connection', (socket) => {
   socket.on("stopStreaming", function(data){
     clearTimeout(clientData[socket.id].restartTimeoutId);
     stopStreaming();
+    socket.broadcast.emit("theirStatus", "mic-off");
   });
 
   socket.on('getAvailableRoles', function(data) {
@@ -126,6 +128,23 @@ io.on('connection', (socket) => {
     socket.broadcast.emit("resetTranslator", true);
     socket.emit("resetLogin", true);
     socket.broadcast.emit("resetLogin", true);
+    socket.emit("availableRoles", usernames);
+    socket.broadcast.emit("availableRoles", usernames);
+  });
+  socket.on("leaveCall", function(data){
+    console.log(clientData[socket.id].username + " leaving Call");
+    let userRole = clientData[socket.id].username;
+    if(usernames[0]==userRole){
+      usernames.splice(0,1);
+      userlanguages.splice(0,1);
+    }
+    else if(usernames[1]==userRole){
+      usernames.splice(1,1);
+      userlanguages.splice(1,1);
+    }
+    createNewClient();
+    socket.emit("resetTranslator", true);
+    socket.emit("resetLogin", true);
     socket.emit("availableRoles", usernames);
     socket.broadcast.emit("availableRoles", usernames);
   });
@@ -199,15 +218,19 @@ io.on('connection', (socket) => {
   socket.on("getAudioFile", function(data){
     ttsTranslateAndSendAudio();
   });
-
+  socket.on("myAudioVizData", function(data){
+    socket.broadcast.emit("theirAudioVizData", { buffer: data });
+  });
   socket.on('disconnect', function() {
     console.log('client disconnected');
     let userRole = clientData[socket.id].username;
     if(usernames[0]==userRole){
       usernames.splice(0,1);
+      userlanguages.splice(0,1);
     }
     else if(usernames[1]==userRole){
       usernames.splice(1,1);
+      userlanguages.splice(1,1);
     }
     clientData[socket.id]={};
   });
@@ -235,6 +258,7 @@ io.on('connection', (socket) => {
       });
       clientData[socket.id].ttsText = translationConcatenated;
       socket.broadcast.emit("getTranslation", translationConcatenated);
+      socket.emit("getTheirTranslation", translationConcatenated);
 
       var ttsRequest = {
         voice: {
@@ -290,6 +314,7 @@ io.on('connection', (socket) => {
           };
           //send text to self in original language
           socket.emit("getTranscript", transcriptObject);
+          socket.broadcast.emit("getTheirTranscript", transcriptObject);
 
           if(data.results[0].isFinal){
             console.log("translate and send audio to other caller");
