@@ -5,7 +5,8 @@ import MultilineOutput from './MultilineOutput';
 import Button from '@material-ui/core/Button';
 import HeadsetIcon from '@material-ui/icons/HeadsetMicTwoTone';
 import PersonIcon from '@material-ui/icons/PersonOutlineTwoTone';
-import { startStreaming, stopStreaming } from './AudioUtils';
+import AudioVisualiser from './AudioVisualiser';
+import { startStreaming, stopStreaming, animatedStreaming } from './AudioUtils';
 
 let source = null;
 let audioBuffer = null;
@@ -21,10 +22,12 @@ class CCConversation extends React.Component {
       username: '',
       myUsername: '',
       theirUsername: '',
-      started: false
+      started: false,
+      audioData: new Uint8Array(0)
     };
     this.toggleListen = this.toggleListen.bind(this);
     this.playAudioBuffer = this.playAudioBuffer.bind(this);
+    this.tick = this.tick.bind(this);
   }
 
   componentDidMount() {
@@ -59,7 +62,7 @@ class CCConversation extends React.Component {
         });
       }
     });
-    this.toggleListen();
+    //this.toggleListen();
   }
 
   componentWillUnmount() {
@@ -72,11 +75,28 @@ class CCConversation extends React.Component {
   async startListening(){
     if(!this.state.audio){
       this.state.socket.emit("startStreaming", true);
-      startStreaming(this.audioContext);
-      this.setState({audio: true, started: true});
+      this.rafId = requestAnimationFrame(this.tick);
+      this.dataArray = new Uint8Array(0);
     }
   }
+
+  tick() {
+    console.log("in component tick");
+    let audioData = new Uint8Array(0);
+    if (!this.state.audio){
+      animatedStreaming(this.audioContext, this.state.audio);
+      this.setState({audio: true, started: true });
+    }
+    else{
+      audioData = animatedStreaming(this.audioContext, this.state.audio);
+      console.log("audioData: " + audioData);
+      this.setState({audio: true, started: true, audioData: audioData });
+    }
+
+    this.rafId = requestAnimationFrame(this.tick);
+  }
   stopListening(){
+    console.log("stop listening " + this.state.audio);
     if(this.state.audio){
       this.state.socket.emit("stopStreaming", true);
       this.setState({audio: false});
@@ -127,6 +147,7 @@ class CCConversation extends React.Component {
             <div align="center">
               <Button variant="contained" color={this.state.audio ? 'secondary' : 'primary'} onClick={this.toggleListen}>{this.state.audio ? 'Mic Active' : this.state.micText}</Button>
             </div>
+            <AudioVisualiser audioData={this.state.audioData} />
           </Grid>
           <Grid item xs={3}><div align="center">{this.state.theirUsername}</div></Grid>
           <Grid item xs={12}>
