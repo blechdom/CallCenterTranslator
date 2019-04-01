@@ -35,7 +35,7 @@ const styles = theme => ({
   },
   theirAvatar: {
     color: '#FFFFFF',
-    backgroundColor: '#f44336',
+    backgroundColor: '#388e3c',
   },
 });
 
@@ -57,6 +57,7 @@ class CCConversation extends React.Component {
       theirLanguage: '',
       theirStatusText: '',
       started: false,
+      autoMuted: false,
       audioVizData: new Uint8Array(0),
       theirAudioVizData: new Uint8Array(0)
     };
@@ -123,7 +124,7 @@ class CCConversation extends React.Component {
       }
     });
     this.state.socket.on("myStatus", (status) => {
-    
+
     });
     this.toggleListen();
   }
@@ -170,12 +171,14 @@ class CCConversation extends React.Component {
     }
   }
   toggleListen() {
+    this.setState({autoMuted:false});
     if (!this.state.started) {
       this.setState({micText: 'Mic Muted', started: true});
     }
     if (this.state.audio) {
       this.stopListening();
     } else {
+      this.setState({autoMuted: true});
       this.startListening();
     }
   }
@@ -196,7 +199,7 @@ class CCConversation extends React.Component {
         source.start(0);
         active_source = true;
         source.onended = (event) => {
-          if (this.state.started) {
+          if ((this.state.started)&&(this.state.autoMuted)) {
             this.startListening();
           }
         };
@@ -219,7 +222,7 @@ class CCConversation extends React.Component {
                   </Avatar>
                 }
                 action={
-                  <Fab size="small" color={this.state.audio ? 'primary' : "#333333"} onClick={this.toggleListen}>
+                  <Fab size="small" color={this.state.audio ? 'primary' : 'secondary'} onClick={this.toggleListen}>
                     {this.state.audio ? <MicOnIcon /> : <MicOffIcon/>}
                   </Fab>
                 }
@@ -244,7 +247,7 @@ class CCConversation extends React.Component {
                   </Avatar>
                 }
                 action={
-                  <Fab size="small" color={this.state.theirAudio ? 'secondary' : "#333333"}>
+                  <Fab size="small" color={this.state.theirAudio ? 'secondary' : "primary"}>
                     {this.state.theirAudio ? <MicOnIcon/> : <MicOffIcon />}
                   </Fab>
                 }
@@ -252,7 +255,7 @@ class CCConversation extends React.Component {
                 subheader={this.state.theirLanguage}
               />
               <CardContent>
-                <div align="center" style={{ marginLeft: -16}}><AudioVisualiser audioVizData={this.state.theirAudioVizData} color='#d32f2f'/></div>
+                <div align="center" style={{ marginLeft: -16}}><AudioVisualiser audioVizData={this.state.theirAudioVizData} color='#388e3c'/></div>
                 <Typography component="p">
                   Status: {this.state.theirStatusText}
                 </Typography>

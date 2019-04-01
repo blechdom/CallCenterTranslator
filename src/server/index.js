@@ -258,13 +258,21 @@ io.on('connection', (socket) => {
       });
       clientData[socket.id].ttsText = translationConcatenated;
       let translatedObject = {
-        transcript: translationConcatenated,
+        transcript: clientData[socket.id].translateText.transcript,
+        translation: translationConcatenated,
         isfinal: clientData[socket.id].translateText.isfinal
       }
-      socket.broadcast.emit("getTranslation", translatedObject);
-      socket.emit("getTheirTranslation", translatedObject);
+      socket.emit("getTranscript", translatedObject);
+      //socket.broadcast.emit("getTranslation", translatedObject);
+      socket.broadcast.emit("getTheirTranslation", translatedObject);
     }
     else{
+      let translatedObject = {
+        transcript: clientData[socket.id].translateText.transcript,
+        translation: "(...waiting for other caller...)",
+        isfinal: clientData[socket.id].translateText.isfinal
+      }
+      socket.emit("getTranscript", translatedObject);
       console.log("no other caller yet");
     }
   }
@@ -292,11 +300,13 @@ io.on('connection', (socket) => {
       });
       clientData[socket.id].ttsText = translationConcatenated;
       let translatedObject = {
-        transcript: translationConcatenated,
+        transcript: clientData[socket.id].translateText.transcript,
+        translation: translationConcatenated,
         isfinal: clientData[socket.id].translateText.isfinal
       }
-      socket.broadcast.emit("getTranslation", translatedObject);
-      socket.emit("getTheirTranslation", translatedObject);
+      socket.emit("getTranscript", translatedObject);
+      //socket.broadcast.emit("getTranslation", translatedObject);
+      socket.broadcast.emit("getTheirTranslation", translatedObject);
 
       var ttsRequest = {
         voice: {
@@ -312,6 +322,12 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('audiodata', response.audioContent);
     }
     else{
+        let translatedObject = {
+          transcript: clientData[socket.id].translateText.transcript,
+          translation: "(...waiting for other caller...)",
+          isfinal: clientData[socket.id].translateText.isfinal
+        }
+        socket.emit("getTranscript", translatedObject);
       console.log("no other caller yet");
     }
   }
@@ -351,7 +367,7 @@ io.on('connection', (socket) => {
             isfinal: data.results[0].isFinal
           };
           //send text to self in original language
-          socket.emit("getTranscript", transcriptObject);
+          //socket.emit("getTranscript", transcriptObject);
           socket.broadcast.emit("getTheirTranscript", transcriptObject);
           clientData[socket.id].translateText = transcriptObject;
           console.log("is final? " + JSON.stringify(clientData[socket.id].translateText));

@@ -24,10 +24,13 @@ const styles = theme => ({
     padding: theme.spacing.unit,
   },
   pendingPrimary: {
-    color: '#90caf9'
+    color: '#90caf9',
   },
   pendingSecondary: {
-    color: '#ef9a9a'
+    color: '#81c784',
+  },
+  alignRight: {
+    textAlign: 'right'
   }
 
 });
@@ -62,11 +65,17 @@ class MultilineOutput extends React.Component {
             outputText:  <div>
                           {this.state.concatText}
                           <ListItem alignItems='flex-start' dense>
-                            <ListItemText className={classes.pendingPrimary}>
-                              <Typography className={classes.pendingPrimary}variant="h5">
-                                {this.state.newText}
-                              </Typography>
-                            </ListItemText>
+                            <ListItemText
+                              primary={
+                                <Typography className={classes.pendingPrimary} variant="h6">
+                                  {response.transcript}
+                                </Typography>
+                              }
+                              secondary={
+                                <Typography className={classes.pendingSecondary} variant="subtitle1">
+                                  {response.translation}
+                                </Typography>
+                            } />
                           </ListItem>
                         </div>
           });
@@ -76,11 +85,17 @@ class MultilineOutput extends React.Component {
               concatText: <div>
                             {this.state.concatText}
                             <ListItem alignItems='flex-start' dense>
-                              <ListItemText color='primary[300]'>
-                                <Typography color='primary' variant="h5">
-                                {this.state.newText}
-                                </Typography>
-                              </ListItemText>
+                              <ListItemText
+                                primary={
+                                  <Typography color="primary" variant="h6">
+                                    {response.transcript}
+                                  </Typography>
+                                }
+                                secondary={
+                                  <Typography color="secondary" variant="subtitle1">
+                                    {response.translation}
+                                  </Typography>
+                              } />
                             </ListItem>
                           </div>,
             }, () => {
@@ -97,7 +112,7 @@ class MultilineOutput extends React.Component {
       socket.on('getTheirTranslation', (response) => {
         console.log("get their transcript " + response);
       });*/
-      socket.on('getTranslation', (response) => {
+      socket.on('getTheirTranslation', (response) => {
         console.log(JSON.stringify(response));
         this.setState({newTranslation: response.transcript});
         if (this.state.newTranslation != undefined){
@@ -105,14 +120,17 @@ class MultilineOutput extends React.Component {
           outputText: <div>
                         {this.state.concatText}
                         <ListItem dense>
-                        <ListItemText></ListItemText>
-                          <ListItemSecondaryAction>
-                            <ListItemText className={classes.pendingSecondary}>
-                            <Typography className={classes.pendingSecondary} variant="h5">
-                              {this.state.newTranslation}
-                            </Typography>
-                            </ListItemText>
-                          </ListItemSecondaryAction>
+                          <ListItemText
+                            primary={
+                              <Typography className={`${classes.pendingSecondary} ${classes.alignRight}`} variant="h6">
+                                {response.transcript}
+                              </Typography>
+                            }
+                            secondary={
+                              <Typography className={`${classes.pendingPrimary} ${classes.alignRight}`} variant="subtitle1">
+                                {response.translation}
+                              </Typography>
+                          } />
                         </ListItem>
                       </div>
         });
@@ -123,14 +141,17 @@ class MultilineOutput extends React.Component {
             concatText: <div>
                           {this.state.concatText}
                           <ListItem dense>
-                          <ListItemText></ListItemText>
-                            <ListItemSecondaryAction>
-                              <ListItemText color='secondary'>
-                              <Typography color='secondary' variant="h5">
-                                {this.state.newTranslation}
+                            <ListItemText
+                              primary={
+                                <Typography color="secondary" className={classes.alignRight} variant="h6">
+                                  {response.transcript}
                                 </Typography>
-                              </ListItemText>
-                            </ListItemSecondaryAction>
+                              }
+                              secondary={
+                                <Typography color="primary" className={classes.alignRight} variant="subtitle1">
+                                  {response.translation}
+                                </Typography>
+                            } />
                           </ListItem>
                         </div>,
           }, () => {
