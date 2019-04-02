@@ -336,8 +336,8 @@ io.on('connection', (socket) => {
     if(clientData[socket.id].voiceCode){
       langCode = clientData[socket.id].voiceCode.substring(0,5);
     }
-    let sttRequest = {
 
+    let sttRequest = {
       config: {
           encoding: 'LINEAR16',
           sampleRateHertz: 16000,
@@ -355,16 +355,27 @@ io.on('connection', (socket) => {
       .on('error', (error) => {
         console.error;
       })
-      .on('data', (data) => {
-        if (data.results[0] && data.results[0].alternatives[0]) {
+      .on('data', emitCallback);
+
+      clientData[socket.id].restartTimeoutId =
+        setTimeout(restartStreaming, STREAMING_LIMIT);
+  }
+    function stopStreaming(){
+      if(clientData[socket.id].recognizeStream){
+        clientData[socket.id].recognizeStream.removeListener('data', emitCallback);
+        clientData[socket.id].recognizeStream = null;
+      }
+    }
+    const emitCallback = (stream) => {
+        if (stream.results[0] && stream.results[0].alternatives[0]) {
           console.log(
             "results " +
-            JSON.stringify(data.results[0].alternatives[0].transcript)
+            JSON.stringify(stream.results[0].alternatives[0].transcript)
           );
 
           var transcriptObject = {
-            transcript: data.results[0].alternatives[0].transcript,
-            isfinal: data.results[0].isFinal
+            transcript: stream.results[0].alternatives[0].transcript,
+            isfinal: stream.results[0].isFinal
           };
           //send text to self in original language
           //socket.emit("getTranscript", transcriptObject);
@@ -372,7 +383,7 @@ io.on('connection', (socket) => {
           clientData[socket.id].translateText = transcriptObject;
           console.log("is final? " + JSON.stringify(clientData[socket.id].translateText));
 
-          if(data.results[0].isFinal){
+          if(stream.results[0].isFinal){
             console.log("translate and send audio to other caller");
             ttsTranslateAndSendAudio();
           }
@@ -380,13 +391,7 @@ io.on('connection', (socket) => {
             translateOnly();
           }
         }
-      });
-      clientData[socket.id].restartTimeoutId =
-        setTimeout(restartStreaming, STREAMING_LIMIT);
-  }
-    function stopStreaming(){
-      clientData[socket.id].recognizeStream = null;
-    }
+    };
 
     function restartStreaming(){
       stopStreaming();
