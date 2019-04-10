@@ -9,4 +9,6 @@ function getVoiceList(cb) {
   });
 }
 
-export { socket, getVoiceList};
+export {
+  socket,
+  getVoiceList};

@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import withStyles from '@material-ui/core/styles/withStyles';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
+import Paper from '@material-ui/core/Paper';
 import MultilineOutput from './MultilineOutput';
 import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
@@ -10,15 +11,19 @@ import CardHeader from '@material-ui/core/CardHeader';
 import CardMedia from '@material-ui/core/CardMedia';
 import CardContent from '@material-ui/core/CardContent';
 import CardActions from '@material-ui/core/CardActions';
-import Collapse from '@material-ui/core/Collapse';
 import Avatar from '@material-ui/core/Avatar';
 import HeadsetIcon from '@material-ui/icons/HeadsetMicTwoTone';
 import PersonIcon from '@material-ui/icons/PersonOutlineTwoTone';
-import IconButton from '@material-ui/core/IconButton';
-import Fab from '@material-ui/core/Fab';
-import MicOnIcon from '@material-ui/icons/MicTwoTone';
-import MicOffIcon from '@material-ui/icons/MicOffTwoTone';
+import LeftIcon from '@material-ui/icons/ArrowBackTwoTone';
+import RightIcon from '@material-ui/icons/ArrowForwardTwoTone';
 import AudioVisualiser from './AudioVisualiser';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemAvatar from '@material-ui/core/ListItemAvatar';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import ListItemText from '@material-ui/core/ListItemText';
+import Divider from '@material-ui/core/Divider';
 import { startStreaming, stopStreaming, animatedStreaming } from './AudioUtils';
 
 let source = null;
@@ -27,7 +32,7 @@ let active_source = false;
 
 const styles = theme => ({
   card: {
-    maxWidth: 300,
+    maxWidth: 200,
   },
   myAvatar: {
     color: '#FFFFFF',
@@ -37,6 +42,21 @@ const styles = theme => ({
     color: '#FFFFFF',
     backgroundColor: '#388e3c',
   },
+  paper: {
+    width: '98%',
+    align: 'center',
+    paddingTop: '0px',
+    marginTop: '0px'
+  },
+  button: {
+    width:'98%',
+    align: 'center',
+  },
+  statusList: {
+    align: 'center',
+    paddingTop: '0px',
+    marginTop: '0px'
+  }
 });
 
 class CCConversation extends React.Component {
@@ -46,7 +66,7 @@ class CCConversation extends React.Component {
       audio: false,
       theirAudio: false,
       socket: this.props.socket,
-      micText: 'Click to Start',
+      micText: 'Click to Speak',
       username: '',
       myUsername: '',
       myAvatar: '',
@@ -57,9 +77,10 @@ class CCConversation extends React.Component {
       theirLanguage: '',
       theirStatusText: '',
       started: false,
-      autoMuted: false,
+      reset: 0,
       audioVizData: new Uint8Array(0),
-      theirAudioVizData: new Uint8Array(0)
+      theirAudioVizData: new Uint8Array(0),
+      selectedIndex: -1,
     };
     this.toggleListen = this.toggleListen.bind(this);
     this.playAudioBuffer = this.playAudioBuffer.bind(this);
@@ -67,15 +88,10 @@ class CCConversation extends React.Component {
   }
 
   componentDidMount() {
-    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-    this.state.socket.on('audiodata', (data) => {
-      this.stopListening();
-      this.playAudioBuffer(data, this.audioContext, true);
-    });
     this.state.socket.emit("getUsername", true);
     this.state.socket.on("myUsernameIs", (data) => {
-      if(data.theirLanguage){
+      if(!data.theirLanguage){
         this.setState({
           theirStatusText: "Not Available",
           myStatusText: "Waiting for other caller"
@@ -109,52 +125,58 @@ class CCConversation extends React.Component {
       var uint8Arr = new Uint8Array(b.buffer);
       this.setState({theirAudioVizData: uint8Arr});
     });
-    this.state.socket.on("theirStatus", (status) => {
-      if(status=="mic-on"){
-        this.setState({
-          theirAudio: true,
-          theirStatusText: 'Microphone On'
-        });
+    this.state.socket.on("allStatus", (status) => {
+      console.log(this.state.theirStatusText);
+      if(!this.state.theirLanguage){
+        status = 'open';
       }
-      if(status=="mic-off"){
-        this.setState({
-          theirAudio: false,
-          theirStatusText: 'Microphone Off'
-        });
-      }
+      console.log("status " + status);
+      this.setState({selectedIndex: status});
+    });
+    this.state.socket.on("stopRecording", (data) => {
+      this.stopListening();
     });
     this.state.socket.on("myStatus", (status) => {
 
     });
-    this.toggleListen();
+    this.state.socket.on('audiodata', (data) => {
+      //this.stopListening();
+      this.playAudioBuffer(data, this.props.audioContext, true);
+    });
   }
 
   componentWillUnmount() {
     this.stopListening();
-    this.audioContext.close();
+    if(this.props.audioContext){
+      this.props.audioContext.close();
+    }
     this.state.socket.off("audiodata");
     this.state.socket.off("myUsernameIs");
     this.state.socket.off("theirAudioVizData");
     this.state.socket.off("theirStatus");
+    this.state.socket.off("myStatus");
   }
 
-  async startListening(){
-    if(!this.state.audio){
+  startListening(){
 
-      this.state.socket.emit("startStreaming", true);
+    if(!this.state.audio){
+      startStreaming(this.props.audioContext);
       this.rafId = requestAnimationFrame(this.tick);
       this.dataArray = new Uint8Array(0);
+      this.setState({audio: true, started: true});
     }
   }
 
   tick() {
     let audioVizData = new Uint8Array(0);
     if (!this.state.audio){
-      animatedStreaming(this.audioContext, this.state.audio);
+      //console.log("not audio viz started");
+      animatedStreaming(this.props.audioContext, this.state.audio);
       this.setState({audio: true, started: true, myStatusText: "Microphone On" });
     }
     else{
-      audioVizData = animatedStreaming(this.audioContext, this.state.audio);
+      //console.log("audio viz already happeneing");
+      audioVizData = animatedStreaming(this.props.audioContext, this.state.audio);
       this.setState({audio: true, started: true, audioVizData: audioVizData });
       let audioVizBuffer = audioVizData.buffer;
       this.state.socket.emit("myAudioVizData", audioVizBuffer);
@@ -165,20 +187,22 @@ class CCConversation extends React.Component {
   stopListening(){
     if(this.state.audio){
       cancelAnimationFrame(this.rafId);
-      this.state.socket.emit("stopStreaming", true);
+      stopStreaming(this.props.audioContext);
       this.setState({audio: false, myStatusText: 'Microphone Off'});
-      stopStreaming(this.audioContext);
     }
   }
   toggleListen() {
-    this.setState({autoMuted:false});
     if (!this.state.started) {
-      this.setState({micText: 'Mic Muted', started: true});
+
+      console.log("stop that stuff not started");
+      this.setState({micText: 'Click to Speak', started: true});
     }
     if (this.state.audio) {
+      console.log("force final and stop");
+      //this.state.socket.emit('forceFinal', true);
       this.stopListening();
     } else {
-      this.setState({autoMuted: true});
+      console.log("starting to listen");
       this.startListening();
     }
   }
@@ -192,17 +216,21 @@ class CCConversation extends React.Component {
     context.decodeAudioData(audioFromString, (buffer) => {
         active_source = true;
         audioBuffer = buffer;
-        source = context.createBufferSource();
-        source.buffer = audioBuffer;
-        source.loop = false;
-        source.connect(context.destination);
-        source.start(0);
-        active_source = true;
-        source.onended = (event) => {
-          if ((this.state.started)&&(this.state.autoMuted)) {
-            this.startListening();
-          }
-        };
+        try {
+          source = context.createBufferSource();
+          source.buffer = audioBuffer;
+          source.loop = false;
+          source.connect(context.destination);
+          source.start(0);
+          active_source = true;
+          source.onended = (event) => {
+            this.state.socket.emit("audioPlaybackComplete", true);
+          };
+        } catch (e) {
+          console.error(e);
+        }
+
+
     }, function (e) {
         console.log('Error decoding file', e);
     });
@@ -213,7 +241,7 @@ class CCConversation extends React.Component {
     return (
       <React.Fragment>
         <Grid container spacing={8}>
-          <Grid item xs={6}>
+          <Grid item xs={4}>
             <Card className={classes.card}>
               <CardHeader
                 avatar={
@@ -221,24 +249,51 @@ class CCConversation extends React.Component {
                     {this.state.myAvatar}
                   </Avatar>
                 }
-                action={
-                  <Fab size="small" color={this.state.audio ? 'primary' : 'secondary'} onClick={this.toggleListen}>
-                    {this.state.audio ? <MicOnIcon /> : <MicOffIcon/>}
-                  </Fab>
-                }
                 title={this.state.myUsername}
                 subheader={this.state.myLanguage}
               />
               <CardContent>
                 <div align="center" style={{ marginLeft: -16}} ><AudioVisualiser audioVizData={this.state.audioVizData} color='#1976d2'/></div>
-                <Typography component="p">
-                  Status: {this.state.myStatusText}
-                </Typography>
               </CardContent>
 
             </Card>
           </Grid>
-          <Grid item xs={6}>
+          <Grid item xs={4}>
+
+              <List dense>
+                <ListItem selected={this.state.selectedIndex === 'agent speaking'}>
+                  <Paper elevation={2} className={classes.paper}>
+                    <Typography align="center" color="primary" className={classes.statusList}>Agent Speaking</Typography>
+                  </Paper>
+                </ListItem>
+                <ListItem selected={this.state.selectedIndex === 'agent processing'}>
+                  <Paper elevation={2} className={classes.paper}>
+                    <Typography align="center" color="primary" className={classes.statusList}>Agent Processing</Typography>
+                  </Paper>
+                </ListItem>
+                <ListItem selected={this.state.selectedIndex === 'agent playback'} >
+                  <Paper elevation={2} className={classes.paper}>
+                    <Typography align="center" color="primary" className={classes.statusList}>Agent Playback</Typography>
+                  </Paper>
+                </ListItem>
+                <ListItem selected={this.state.selectedIndex === 'client speaking'}>
+                  <Paper elevation={2} className={classes.paper}>
+                    <Typography align="center" color="secondary" className={classes.statusList}>Client Speaking</Typography>
+                  </Paper>
+                </ListItem>
+                <ListItem selected={this.state.selectedIndex === 'client processing'}>
+                  <Paper elevation={2} className={classes.paper}>
+                    <Typography align="center" color="secondary" className={classes.statusList}>Client Processing</Typography>
+                  </Paper>
+                </ListItem>
+                <ListItem selected={this.state.selectedIndex === 'client playback'}>
+                  <Paper elevation={2} className={classes.paper}>
+                    <Typography align="center" color="secondary" className={classes.statusList}>Client Playback</Typography>
+                  </Paper>
+                </ListItem>
+              </List>
+          </Grid>
+          <Grid item xs={4}>
             <Card className={classes.card}>
               <CardHeader
                 avatar={
@@ -246,21 +301,16 @@ class CCConversation extends React.Component {
                     {this.state.theirAvatar}
                   </Avatar>
                 }
-                action={
-                  <Fab size="small" color={this.state.theirAudio ? 'secondary' : "primary"}>
-                    {this.state.theirAudio ? <MicOnIcon/> : <MicOffIcon />}
-                  </Fab>
-                }
                 title={this.state.theirUsername}
                 subheader={this.state.theirLanguage}
               />
               <CardContent>
                 <div align="center" style={{ marginLeft: -16}}><AudioVisualiser audioVizData={this.state.theirAudioVizData} color='#388e3c'/></div>
-                <Typography component="p">
-                  Status: {this.state.theirStatusText}
-                </Typography>
               </CardContent>
             </Card>
+          </Grid>
+          <Grid item xs={12}>
+            <Button variant="contained" className={classes.button} color={this.state.audio ? 'secondary' : 'primary'} onClick={this.toggleListen}>{this.state.audio ? 'Mic Active' : this.state.micText}</Button>
           </Grid>
           <Grid item xs={12}>
             <MultilineOutput socket={this.state.socket} username={this.state.username}/>

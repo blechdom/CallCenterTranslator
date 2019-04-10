@@ -32,7 +32,6 @@ const styles = theme => ({
   alignRight: {
     textAlign: 'right'
   }
-
 });
 
 class MultilineOutput extends React.Component {
@@ -106,14 +105,8 @@ class MultilineOutput extends React.Component {
           }
         }
       });
-    /*  socket.on('getTheirTranscript', (response) => {
-        console.log("get their transcript " + response);
-      });
       socket.on('getTheirTranslation', (response) => {
-        console.log("get their transcript " + response);
-      });*/
-      socket.on('getTheirTranslation', (response) => {
-        console.log(JSON.stringify(response));
+        //console.log(JSON.stringify(response));
         this.setState({newTranslation: response.transcript});
         if (this.state.newTranslation != undefined){
         this.setState({
@@ -135,7 +128,6 @@ class MultilineOutput extends React.Component {
                       </div>
         });
         if (response.isfinal){
-          console.log("translation isfinal");
             this.setState({
             isFinal: true,
             concatText: <div>
@@ -160,9 +152,6 @@ class MultilineOutput extends React.Component {
             });
           });
         }
-        //this.setState({newTranslation: ''});
-        //this.setState({newText: ''});
-        //this.setState({isFinal: false});
       }
     });
     this.scrollToBottom();
@@ -175,7 +164,7 @@ class MultilineOutput extends React.Component {
   componentDidUpdate() {
     this.scrollToBottom();
     if(this.state.username != this.props.username) {
-      console.log("output knows i am " + this.props.username);
+      //console.log("output knows i am " + this.props.username);
       if(this.props.username=='client'){
         this.setState({
           username: this.props.username,
@@ -197,8 +186,6 @@ class MultilineOutput extends React.Component {
     let socket = this.props.socket;
     socket.off("getTranscript");
     socket.off("getTranslation");
-  //  socket.off("getTheirTranscript");
-  //  socket.off("getTheirTranslation");
   }
 
   render() {

@@ -100,6 +100,7 @@ class CallCenterTranslator extends React.Component {
   };
   componentDidMount() {
     const { classes } = this.props;
+    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     socket.on("resetTranslator", (data) => {
       this.setState({
         open: false,
@@ -113,7 +114,7 @@ class CallCenterTranslator extends React.Component {
       this.setState({
         open: false,
         currentFormNumber: 1,
-        currentForm: <CallCenterConversation socket={socket}/>,
+        currentForm: <CallCenterConversation socket={socket} audioContext={this.audioContext}/>,
         settingsButton: '',
         titleSpacing: '\u00A0\u00A0\u00A0\u00A0\u00A0',
       });

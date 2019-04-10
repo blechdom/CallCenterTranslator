@@ -62,28 +62,28 @@ class LanguageSelects extends React.Component {
   }
 
   handleLanguageChange = (event) => {
-    console.log("handle Language change " + event.target.value);
+    //console.log("handle Language change " + event.target.value);
     this.setState({languageCode: event.target.value }, () => this.populateVoiceSynthSelect());
   };
   handleSynthChange = (event) => {
-    console.log("handle synth change " + event.target.value);
+    //console.log("handle synth change " + event.target.value);
     this.setState({ voiceSynth: event.target.value}, () => this.populateVoiceTypeSelect());
   };
   handleVoiceChange = (event) => {
-    console.log("handle voice change " + event.target.value);
+    //console.log("handle voice change " + event.target.value);
     this.setState({ voiceType: event.target.value }, () => this.emitVoiceCode());
   };
 
   emitVoiceCode(){
     let voiceType = this.state.voiceType;
-    console.log("emitting voice code " + voiceType);
+    //console.log("emitting voice code " + voiceType);
 
     this.state.socket.emit("voiceCode", voiceType);
   }
 
   populateVoiceSynthSelect(){
     let languageCode = this.state.languageCode;
-    console.log("populate synth with language code " + languageCode);
+    //console.log("populate synth with language code " + languageCode);
     let voiceObjects = [];
     let voicelist = this.state.voices;
     voiceObjects = voicelist.find(x => x.languageCode === languageCode).languageTypes;
