@@ -14,8 +14,6 @@ app.use(express.static('dist'));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '')));
 
-const STREAMING_LIMIT = 55000;
-
 let usernames=[];
 let userlanguages=[];
 
@@ -24,36 +22,22 @@ io.on('connection', (socket) => {
   let clientData = {};
   function createNewClient(){
     clientData[socket.id] = {
-      id: socket.id,
       username: '',
       speechClient: new speech.SpeechClient(),
       ttsClient: new textToSpeech.TextToSpeechClient(),
       translate: new Translate(),
       recognizeStream: null,
-      restartCounter: 0,
-      restartTimeoutId: null,
       ttsText: '',
       translateText: '',
       voiceCode: 'en-US-Wavenet-D',
       speechLanguageCode: 'en-US-Wavenet-D',
-      speechModel: 'default',
-      useEnhanced: 'false',
-      enableAutomaticPunctuation: 'true',
-      resultEndTime: 0,
-      isFinalEndTime: 0,
-      finalRequestEndTime: 0,
-      audioArray: [],
-      lastAudioArray: [],
-      newStream: true,
-      timeOffset: 0,
-      lastTranscriptWasFinal: false
     }
   }
   createNewClient();
 
-  /*socket.on('translate-text', function(data){
+  socket.on('translate-text', function(data){
     clientData[socket.id].translateText.transcript = data;
-  });*/
+  });
 
   socket.on('voiceCode', function(data) {
     console.log("voice code: " + data);
@@ -76,36 +60,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('binaryStream', function(data) {
-    if(clientData[socket.id].newStream && (clientData[socket.id].lastAudioArray.length !=0 )) {
-
-      let chunkTime = STREAMING_LIMIT / clientData[socket.id].lastAudioArray.length;
-
-      if(chunkTime != 0){
-        if (clientData[socket.id].timeOffset < 0) {
-          clientData[socket.id].timeOffset = 0;
-        }
-        if(clientData[socket.id].timeOffset > clientData[socket.id].finalRequestEndTime) {
-          clientData[socket.id].timeOffset = clientData[socket.id].finalRequestEndTime;
-        }
-        let chunksFromMS = Math.floor((clientData[socket.id].finalRequestEndTime - clientData[socket.id].timeOffset) / chunkTime);
-        clientData[socket.id].timeOffset = Math.floor(
-          (clientData[socket.id].lastAudioArray.length - chunksFromMS) * chunkTime
-        );
-        for(let i=chunksFromMS; i<clientData[socket.id].lastAudioArray.length; i++){
-          clientData[socket.id].recognizeStream.write(clientData[socket.id].lastAudioArray[i]);
-        }
-      }
-      clientData[socket.id].newStream = false;
-    }
-
-    clientData[socket.id].audioArray.push(data);
     if(clientData[socket.id].recognizeStream!=null) {
       clientData[socket.id].recognizeStream.write(data);
     }
   });
 
   socket.on("stopStreaming", function(data){
-    clearTimeout(clientData[socket.id].restartTimeoutId);
     stopStreaming();
   });
 
@@ -150,6 +110,7 @@ io.on('connection', (socket) => {
       otherLanguage: otherLanguage
     };
       socket.emit("myUsernameIs", userInfo);
+      socket.broadcast.emit("updateYourself", true);
   });
 
   socket.on("resetCall", function(data){
@@ -246,6 +207,21 @@ io.on('connection', (socket) => {
     }
     getList();
   });
+
+  socket.on('forceFinal', function(data){
+    stopStreaming();
+    console.log("forcing final");
+    if(clientData[socket.id].translateText.transcript){
+
+      clientData[socket.id].translateText.isfinal = true;
+      ttsTranslateAndSendAudio();
+    }
+    else {
+      socket.emit("allStatus", 'open');
+      socket.broadcast.emit("allStatus", 'open');
+    }
+  });
+
   socket.on("audioPlaybackComplete", function(data){
     console.log("playback complete for " + [socket.id]);
     socket.emit("allStatus", 'open');
@@ -311,6 +287,8 @@ io.on('connection', (socket) => {
   }
 
   async function ttsTranslateAndSendAudio(){
+    socket.emit("allStatus", clientData[socket.id].username + ' processing');
+    socket.broadcast.emit("allStatus", clientData[socket.id].username + ' processing');
     var translateLanguageCode = '';
     var otherCallersVoiceCode = '';
     for(var i in usernames){
@@ -393,37 +371,15 @@ io.on('connection', (socket) => {
           })
           .on('data', speechCallback);
     }
-
-
-      clientData[socket.id].restartTimeoutId =
-        setTimeout(restartStreaming, STREAMING_LIMIT);
   }
     function stopStreaming(){
       if(clientData[socket.id].recognizeStream){
         clientData[socket.id].recognizeStream.removeListener('data', speechCallback);
         clientData[socket.id].recognizeStream = null;
       }
-      if(clientData[socket.id].resultEndTime>0){
-          clientData[socket.id].finalRequestEndTime = clientData[socket.id].isFinalEndTime;
-      }
-      clientData[socket.id].resultEndTime = 0;
-
-      clientData[socket.id].resultEndTime = 0;
-      clientData[socket.id].lastAudioArray = [];
-      clientData[socket.id].lastAudioArray = clientData[socket.id].audioArray;
-
-      clientData[socket.id].newStream=true;
     }
     const speechCallback = (stream) => {
         if (stream.results[0] && stream.results[0].alternatives[0]) {
-
-          clientData[socket.id].resultEndTime = stream.results[0].resultEndTime.seconds * 1000 +
-            Math.round(stream.results[0].resultEndTime.nanos / 1000000);
-        //}
-          let correctedTime =
-            clientData[socket.id].resultEndTime - clientData[socket.id].timeOffset + (STREAMING_LIMIT * clientData[socket.id].restartCounter);
-
-          stream.results[0].correctedTime = correctedTime;
 
           console.log(stream.results[0].alternatives[0].transcript);
           var transcriptObject = {
@@ -439,24 +395,13 @@ io.on('connection', (socket) => {
           if(stream.results[0].isFinal){
             socket.emit("stopRecording", true);
             console.log("translate and send audio to other caller");
-            clientData[socket.id].isFinalEndTime = clientData[socket.id].resultEndTime;
-            clientData[socket.id].lastTranscriptWasFinal = true;
-            socket.emit("allStatus", clientData[socket.id].username + ' processing');
-            socket.broadcast.emit("allStatus", clientData[socket.id].username + ' processing');
             ttsTranslateAndSendAudio();
           }
           else{
-            clientData[socket.id].lastTranscriptWasFinal = false;
             translateOnly();
           }
         }
     };
-
-    function restartStreaming(){
-      stopStreaming();
-      clientData[socket.id].restartCounter++;
-      startStreaming();
-    }
 
   function formatLanguageTypes(voiceObjects) {
     let voiceTypes = [];

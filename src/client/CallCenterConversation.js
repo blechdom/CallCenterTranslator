@@ -14,16 +14,10 @@ import CardActions from '@material-ui/core/CardActions';
 import Avatar from '@material-ui/core/Avatar';
 import HeadsetIcon from '@material-ui/icons/HeadsetMicTwoTone';
 import PersonIcon from '@material-ui/icons/PersonOutlineTwoTone';
-import LeftIcon from '@material-ui/icons/ArrowBackTwoTone';
-import RightIcon from '@material-ui/icons/ArrowForwardTwoTone';
 import AudioVisualiser from './AudioVisualiser';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
-import ListItemAvatar from '@material-ui/core/ListItemAvatar';
-import ListItemIcon from '@material-ui/core/ListItemIcon';
-import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
 import ListItemText from '@material-ui/core/ListItemText';
-import Divider from '@material-ui/core/Divider';
 import { startStreaming, stopStreaming, animatedStreaming } from './AudioUtils';
 
 let source = null;
@@ -56,6 +50,12 @@ const styles = theme => ({
     align: 'center',
     paddingTop: '0px',
     marginTop: '0px'
+  },
+  clientSelected: {
+    backgroundColor: "#ce93d8 !important",
+  },
+  agentSelected: {
+    backgroundColor: "#ce93d8 !important",
   }
 });
 
@@ -71,16 +71,15 @@ class CCConversation extends React.Component {
       myUsername: '',
       myAvatar: '',
       myLanguage: '',
-      myStatusText: '',
       theirUsername: '',
       theirAvatar: '',
       theirLanguage: '',
-      theirStatusText: '',
       started: false,
       reset: 0,
       audioVizData: new Uint8Array(0),
       theirAudioVizData: new Uint8Array(0),
       selectedIndex: -1,
+      recordingDisabled: false,
     };
     this.toggleListen = this.toggleListen.bind(this);
     this.playAudioBuffer = this.playAudioBuffer.bind(this);
@@ -91,13 +90,7 @@ class CCConversation extends React.Component {
 
     this.state.socket.emit("getUsername", true);
     this.state.socket.on("myUsernameIs", (data) => {
-      if(!data.theirLanguage){
-        this.setState({
-          theirStatusText: "Not Available",
-          myStatusText: "Waiting for other caller"
-        });
 
-      }
       if(data.username=="agent"){
         this.setState({
           username: 'agent',
@@ -107,6 +100,8 @@ class CCConversation extends React.Component {
           theirUsername: 'Client',
           theirAvatar: <PersonIcon/>,
           theirLanguage: data.otherLanguage,
+          agentColor: 'primary',
+          clientColor: 'secondary'
         });
       }
       else{
@@ -118,6 +113,8 @@ class CCConversation extends React.Component {
           theirUsername: 'Agent',
           theirAvatar: <HeadsetIcon/>,
           theirLanguage: data.otherLanguage,
+          agentColor: 'secondary',
+          clientColor: 'primary'
         });
       }
     });
@@ -126,9 +123,14 @@ class CCConversation extends React.Component {
       this.setState({theirAudioVizData: uint8Arr});
     });
     this.state.socket.on("allStatus", (status) => {
-      console.log(this.state.theirStatusText);
       if(!this.state.theirLanguage){
         status = 'open';
+      }
+      if(status=='open'){
+        this.setState({recordingDisabled: false});
+      }
+      else if(!this.state.audio){
+        this.setState({recordingDisabled: true});
       }
       console.log("status " + status);
       this.setState({selectedIndex: status});
@@ -136,8 +138,8 @@ class CCConversation extends React.Component {
     this.state.socket.on("stopRecording", (data) => {
       this.stopListening();
     });
-    this.state.socket.on("myStatus", (status) => {
-
+    this.state.socket.on("updateYourself", (status) => {
+      this.state.socket.emit("getUsername", true);
     });
     this.state.socket.on('audiodata', (data) => {
       //this.stopListening();
@@ -199,7 +201,7 @@ class CCConversation extends React.Component {
     }
     if (this.state.audio) {
       console.log("force final and stop");
-      //this.state.socket.emit('forceFinal', true);
+      this.state.socket.emit('forceFinal', true);
       this.stopListening();
     } else {
       console.log("starting to listen");
@@ -261,34 +263,34 @@ class CCConversation extends React.Component {
           <Grid item xs={4}>
 
               <List dense>
-                <ListItem selected={this.state.selectedIndex === 'agent speaking'}>
+                <ListItem selected={this.state.selectedIndex === 'agent speaking'} classes={{selected: classes.agentSelected}}>
                   <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color="primary" className={classes.statusList}>Agent Speaking</Typography>
+                    <Typography align="center" color={this.state.agentColor} className={classes.statusList}>Agent Speaking</Typography>
                   </Paper>
                 </ListItem>
-                <ListItem selected={this.state.selectedIndex === 'agent processing'}>
+                <ListItem selected={this.state.selectedIndex === 'agent processing'} classes={{selected: classes.agentSelected}}>
                   <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color="primary" className={classes.statusList}>Agent Processing</Typography>
+                    <Typography align="center" color={this.state.agentColor} className={classes.statusList}>Agent Processing</Typography>
                   </Paper>
                 </ListItem>
-                <ListItem selected={this.state.selectedIndex === 'agent playback'} >
+                <ListItem selected={this.state.selectedIndex === 'agent playback'} classes={{selected: classes.agentSelected}}>
                   <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color="primary" className={classes.statusList}>Agent Playback</Typography>
+                    <Typography align="center" color={this.state.agentColor} className={classes.statusList}>Agent Playback</Typography>
                   </Paper>
                 </ListItem>
-                <ListItem selected={this.state.selectedIndex === 'client speaking'}>
+                <ListItem selected={this.state.selectedIndex === 'client speaking'} classes={{selected: classes.clientSelected}}>
                   <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color="secondary" className={classes.statusList}>Client Speaking</Typography>
+                    <Typography align="center" color={this.state.clientColor} className={classes.statusList}>Client Speaking</Typography>
                   </Paper>
                 </ListItem>
-                <ListItem selected={this.state.selectedIndex === 'client processing'}>
+                <ListItem selected={this.state.selectedIndex === 'client processing'} classes={{selected: classes.clientSelected}}>
                   <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color="secondary" className={classes.statusList}>Client Processing</Typography>
+                    <Typography align="center" color={this.state.clientColor} className={classes.statusList}>Client Processing</Typography>
                   </Paper>
                 </ListItem>
-                <ListItem selected={this.state.selectedIndex === 'client playback'}>
+                <ListItem selected={this.state.selectedIndex === 'client playback'} classes={{selected: classes.clientSelected}}>
                   <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color="secondary" className={classes.statusList}>Client Playback</Typography>
+                    <Typography align="center" color={this.state.clientColor} className={classes.statusList}>Client Playback</Typography>
                   </Paper>
                 </ListItem>
               </List>
@@ -310,7 +312,7 @@ class CCConversation extends React.Component {
             </Card>
           </Grid>
           <Grid item xs={12}>
-            <Button variant="contained" className={classes.button} color={this.state.audio ? 'secondary' : 'primary'} onClick={this.toggleListen}>{this.state.audio ? 'Mic Active' : this.state.micText}</Button>
+            <Button variant="contained" className={classes.button} color={this.state.audio ? 'secondary' : 'primary'} onClick={this.toggleListen} disabled={this.state.recordingDisabled} >{this.state.audio ? 'Mic Active' : this.state.micText}</Button>
           </Grid>
           <Grid item xs={12}>
             <MultilineOutput socket={this.state.socket} username={this.state.username}/>
