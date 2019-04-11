@@ -444,6 +444,9 @@ io.on('connection', (socket) => {
   function convertLanguageCodes(languageCode) {
     let languageName;
     switch (languageCode) {
+      case 'ar-XA':
+        languageName = "Arabic";
+        break;
       case 'da-DK':
         languageName = "Danish";
         break;
@@ -456,6 +459,9 @@ io.on('connection', (socket) => {
       case 'en-GB':
         languageName = "English (United Kingdom)"
         break;
+      case 'en-IN':
+        languageName = "English (India)";
+        break;
       case 'en-US':
         languageName = "English (United States)";
         break;
@@ -467,6 +473,9 @@ io.on('connection', (socket) => {
         break;
       case 'fr-FR':
         languageName = "French";
+        break;
+      case 'hu-HU':
+        languageName = "Hungarian";
         break;
       case 'it-IT':
         languageName = "Italian"
@@ -506,6 +515,9 @@ io.on('connection', (socket) => {
         break;
       case 'uk-UA':
         languageName = "Ukrainian (Ukraine)"
+        break;
+      case 'vi-VN':
+        languageName = "Vietnamese"
         break;
       default:
         languageName = languageCode;

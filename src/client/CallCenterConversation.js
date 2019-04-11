@@ -142,27 +142,34 @@ class CCConversation extends React.Component {
       this.state.socket.emit("getUsername", true);
     });
     this.state.socket.on('audiodata', (data) => {
-      //this.stopListening();
-      this.playAudioBuffer(data, this.props.audioContext, true);
+      if(!this.state.started){
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.setState({started:true});
+      }
+      this.playAudioBuffer(data, this.audioContext, true);
     });
   }
 
   componentWillUnmount() {
     this.stopListening();
-    if(this.props.audioContext){
-      this.props.audioContext.close();
+    if(this.audioContext){
+      this.audioContext.close();
     }
     this.state.socket.off("audiodata");
     this.state.socket.off("myUsernameIs");
     this.state.socket.off("theirAudioVizData");
-    this.state.socket.off("theirStatus");
-    this.state.socket.off("myStatus");
+    this.state.socket.off("allStatus");
+    this.state.socket.off("updateYourself");
+    this.state.socket.off("stopRecording");
   }
 
   startListening(){
-
+    if(!this.state.started){
+      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      this.setState({started:true});
+    }
     if(!this.state.audio){
-      startStreaming(this.props.audioContext);
+      startStreaming(this.audioContext);
       this.rafId = requestAnimationFrame(this.tick);
       this.dataArray = new Uint8Array(0);
       this.setState({audio: true, started: true});
@@ -173,12 +180,12 @@ class CCConversation extends React.Component {
     let audioVizData = new Uint8Array(0);
     if (!this.state.audio){
       //console.log("not audio viz started");
-      animatedStreaming(this.props.audioContext, this.state.audio);
+      animatedStreaming(this.audioContext, this.state.audio);
       this.setState({audio: true, started: true, myStatusText: "Microphone On" });
     }
     else{
       //console.log("audio viz already happeneing");
-      audioVizData = animatedStreaming(this.props.audioContext, this.state.audio);
+      audioVizData = animatedStreaming(this.audioContext, this.state.audio);
       this.setState({audio: true, started: true, audioVizData: audioVizData });
       let audioVizBuffer = audioVizData.buffer;
       this.state.socket.emit("myAudioVizData", audioVizBuffer);
@@ -189,14 +196,12 @@ class CCConversation extends React.Component {
   stopListening(){
     if(this.state.audio){
       cancelAnimationFrame(this.rafId);
-      stopStreaming(this.props.audioContext);
+      stopStreaming(this.audioContext);
       this.setState({audio: false, myStatusText: 'Microphone Off'});
     }
   }
   toggleListen() {
     if (!this.state.started) {
-
-      console.log("stop that stuff not started");
       this.setState({micText: 'Click to Speak', started: true});
     }
     if (this.state.audio) {

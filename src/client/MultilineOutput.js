@@ -185,7 +185,7 @@ class MultilineOutput extends React.Component {
   componentWillUnmount(){
     let socket = this.props.socket;
     socket.off("getTranscript");
-    socket.off("getTranslation");
+    socket.off("getTheirTranslation");
   }
 
   render() {

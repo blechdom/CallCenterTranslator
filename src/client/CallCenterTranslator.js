@@ -100,7 +100,7 @@ class CallCenterTranslator extends React.Component {
   };
   componentDidMount() {
     const { classes } = this.props;
-    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
     socket.on("resetTranslator", (data) => {
       this.setState({
         open: false,
