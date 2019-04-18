@@ -26,7 +26,11 @@ let active_source = false;
 
 const styles = theme => ({
   card: {
-    maxWidth: 200,
+    maxWidth: 320,
+  },
+  cardSelected: {
+    maxWidth: 320,
+    backgroundColor: '#FFCCCC',
   },
   myAvatar: {
     color: '#FFFFFF',
@@ -66,8 +70,9 @@ class CCConversation extends React.Component {
       audio: false,
       theirAudio: false,
       socket: this.props.socket,
-      micText: 'Click to Speak',
+      micText: 'Push To Talk',
       username: '',
+      userChar: '',
       myUsername: '',
       myAvatar: '',
       myLanguage: '',
@@ -79,6 +84,7 @@ class CCConversation extends React.Component {
       audioVizData: new Uint8Array(0),
       theirAudioVizData: new Uint8Array(0),
       selectedIndex: -1,
+      selectedChar: '',
       recordingDisabled: false,
     };
     this.toggleListen = this.toggleListen.bind(this);
@@ -94,10 +100,12 @@ class CCConversation extends React.Component {
       if(data.username=="agent"){
         this.setState({
           username: 'agent',
+          userChar: 'a',
           myUsername: 'Agent (you)',
           myAvatar: <HeadsetIcon/>,
           myLanguage: data.language,
           theirUsername: 'Client',
+          theirUserChar: 'c',
           theirAvatar: <PersonIcon/>,
           theirLanguage: data.otherLanguage,
           agentColor: 'primary',
@@ -107,10 +115,12 @@ class CCConversation extends React.Component {
       else{
         this.setState({
           username: 'client',
+          userChar: 'c',
           myUsername: 'Client (you)',
           myAvatar: <PersonIcon/>,
           myLanguage: data.language,
           theirUsername: 'Agent',
+          theirUserChar: 'a',
           theirAvatar: <HeadsetIcon/>,
           theirLanguage: data.otherLanguage,
           agentColor: 'secondary',
@@ -127,13 +137,20 @@ class CCConversation extends React.Component {
         status = 'open';
       }
       if(status=='open'){
-        this.setState({recordingDisabled: false});
+        this.setState({recordingDisabled: false,
+          micText: 'PUSH TO TALK'
+        });
       }
       else if(!this.state.audio){
-        this.setState({recordingDisabled: true});
+        this.setState({recordingDisabled: true,
+          micText: 'UNAVAILABLE'
+        });
       }
       console.log("status " + status);
-      this.setState({selectedIndex: status});
+      this.setState({
+        selectedIndex: status,
+        selectedChar: status.charAt(0),
+      });
     });
     this.state.socket.on("stopRecording", (data) => {
       this.stopListening();
@@ -202,7 +219,7 @@ class CCConversation extends React.Component {
   }
   toggleListen() {
     if (!this.state.started) {
-      this.setState({micText: 'Click to Speak', started: true});
+      this.setState({micText: 'Push To Talk', started: true});
     }
     if (this.state.audio) {
       console.log("force final and stop");
@@ -248,8 +265,8 @@ class CCConversation extends React.Component {
     return (
       <React.Fragment>
         <Grid container spacing={8}>
-          <Grid item xs={4}>
-            <Card className={classes.card}>
+          <Grid item xs={6}>
+            <Card className={this.state.selectedChar === this.state.userChar ? classes.cardSelected : classes.card}>
               <CardHeader
                 avatar={
                   <Avatar aria-label="Chat-Role" className={classes.myAvatar}>
@@ -265,43 +282,8 @@ class CCConversation extends React.Component {
 
             </Card>
           </Grid>
-          <Grid item xs={4}>
-
-              <List dense>
-                <ListItem selected={this.state.selectedIndex === 'agent speaking'} classes={{selected: classes.agentSelected}}>
-                  <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color={this.state.agentColor} className={classes.statusList}>Agent Speaking</Typography>
-                  </Paper>
-                </ListItem>
-                <ListItem selected={this.state.selectedIndex === 'agent processing'} classes={{selected: classes.agentSelected}}>
-                  <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color={this.state.agentColor} className={classes.statusList}>Agent Processing</Typography>
-                  </Paper>
-                </ListItem>
-                <ListItem selected={this.state.selectedIndex === 'agent playback'} classes={{selected: classes.agentSelected}}>
-                  <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color={this.state.agentColor} className={classes.statusList}>Agent Playback</Typography>
-                  </Paper>
-                </ListItem>
-                <ListItem selected={this.state.selectedIndex === 'client speaking'} classes={{selected: classes.clientSelected}}>
-                  <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color={this.state.clientColor} className={classes.statusList}>Client Speaking</Typography>
-                  </Paper>
-                </ListItem>
-                <ListItem selected={this.state.selectedIndex === 'client processing'} classes={{selected: classes.clientSelected}}>
-                  <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color={this.state.clientColor} className={classes.statusList}>Client Processing</Typography>
-                  </Paper>
-                </ListItem>
-                <ListItem selected={this.state.selectedIndex === 'client playback'} classes={{selected: classes.clientSelected}}>
-                  <Paper elevation={2} className={classes.paper}>
-                    <Typography align="center" color={this.state.clientColor} className={classes.statusList}>Client Playback</Typography>
-                  </Paper>
-                </ListItem>
-              </List>
-          </Grid>
-          <Grid item xs={4}>
-            <Card className={classes.card}>
+          <Grid item xs={6}>
+            <Card className={this.state.selectedChar === this.state.theirUserChar ? classes.cardSelected : classes.card}>
               <CardHeader
                 avatar={
                   <Avatar aria-label="Chat-Role" className={classes.theirAvatar}>
