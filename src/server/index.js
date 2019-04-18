@@ -339,6 +339,22 @@ io.on('connection', (socket) => {
   socket.on("myAudioVizData", function(data){
     socket.broadcast.emit("theirAudioVizData", { buffer: data });
   });
+  socket.on("translateAndSendThisText", function(data){
+    var transcriptObject = {
+      transcript: data,
+      isfinal: true
+    };
+
+    socket.broadcast.emit("getTheirTranscript", transcriptObject);
+    translateText = transcriptObject;
+    //console.log("is final? " + JSON.stringify(translateText));
+
+    socket.emit("stopRecording", true);
+
+    console.log("translate and send audio to other caller");
+    ttsTranslateAndSendAudio();
+    
+  });
   socket.on('disconnect', function() {
     console.log('client disconnected');
     let userRole = username;
@@ -530,34 +546,44 @@ io.on('connection', (socket) => {
               let correctedTime =
                 resultEndTime - timeOffset + (streamingLimit * restartCounter);
           }
-          //console.log(stream.results[0].alternatives[0].transcript);
-          var transcriptObject = {
-            transcript: stream.results[0].alternatives[0].transcript,
-            isfinal: stream.results[0].isFinal
-          };
+          if(approveText){
+            var transcriptObject = {
+              transcript: stream.results[0].alternatives[0].transcript,
+              isfinal: stream.results[0].isFinal
+            };
+            socket.emit("textNeedsApproval", transcriptObject);
+          }
+          else {
+            //console.log(stream.results[0].alternatives[0].transcript);
+            var transcriptObject = {
+              transcript: stream.results[0].alternatives[0].transcript,
+              isfinal: stream.results[0].isFinal
+            };
 
-          socket.broadcast.emit("getTheirTranscript", transcriptObject);
-          translateText = transcriptObject;
-          //console.log("is final? " + JSON.stringify(translateText));
+            socket.broadcast.emit("getTheirTranscript", transcriptObject);
+            translateText = transcriptObject;
+            //console.log("is final? " + JSON.stringify(translateText));
 
 
-          if(stream.results[0].isFinal){
-            if(interactionMode=='continuous'){
-              isFinalEndTime = resultEndTime;
-              lastTranscriptWasFinal = true;
+            if(stream.results[0].isFinal){
+              if(interactionMode=='continuous'){
+                isFinalEndTime = resultEndTime;
+                lastTranscriptWasFinal = true;
+              }
+              else{
+                socket.emit("stopRecording", true);
+              }
+              console.log("translate and send audio to other caller");
+              ttsTranslateAndSendAudio();
             }
             else{
-              socket.emit("stopRecording", true);
+              if(interactionMode=='continuous'){
+                lastTranscriptWasFinal = false;
+              }
+              translateOnly();
             }
-            console.log("translate and send audio to other caller");
-            ttsTranslateAndSendAudio();
           }
-          else{
-            if(interactionMode=='continuous'){
-              lastTranscriptWasFinal = false;
-            }
-            translateOnly();
-          }
+
         }
     };
 

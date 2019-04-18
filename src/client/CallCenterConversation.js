@@ -183,7 +183,7 @@ class CCConversation extends React.Component {
       this.stopListening();
     });
     this.state.socket.on("updateYourself", (numberOfUsers) => {
-      console.log("updating if number changes " + numberOfUsers);
+      //console.log("updating if number changes " + numberOfUsers);
 
       if(this.state.numberOfUsers!==numberOfUsers) {
         this.state.socket.emit("getUsername", true);
@@ -277,7 +277,7 @@ class CCConversation extends React.Component {
     }
     if (this.state.audio) {
       if(this.state.interactionMode!=='continuous'){
-        console.log("force final and stop");
+        //console.log("force final and stop");
         this.state.socket.emit('forceFinal', true);
       }
       this.stopListening();
@@ -376,7 +376,7 @@ class CCConversation extends React.Component {
             </Button>
           </Grid>
           <Grid item xs={12}>
-            <MultilineOutput socket={this.state.socket} username={this.state.username}/>
+            <MultilineOutput socket={this.state.socket} username={this.state.username} approveText={this.state.approveText}/>
           </Grid>
         </Grid>
       </React.Fragment>

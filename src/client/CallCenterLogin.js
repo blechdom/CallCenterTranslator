@@ -63,7 +63,7 @@ class CallCenterLogin extends React.Component {
       this.setState({helpOpen:false});
   }
   handleModeChange = (event) => {
-    console.log(event.target.value);
+    //console.log(event.target.value);
     this.setState({ interactionMode: event.target.value }, () => setInteractionMode(this.state.interactionMode));
     if(event.target.value=='continuous'){
       this.setState({
@@ -99,9 +99,9 @@ class CallCenterLogin extends React.Component {
         agentDisabled:false,
         clientDisabled:false
       })
-      console.log("in available roles");
+      //console.log("in available roles");
       for(var i in roles){
-        console.log("roles: " + roles[i]);
+        //console.log("roles: " + roles[i]);
         if (roles[i]=="agent"){
           this.setState({agentDisabled:true});
         }
@@ -115,7 +115,7 @@ class CallCenterLogin extends React.Component {
       this.state.socket.emit("resetMyData", true);
     });
     this.state.socket.on("getInteractionMode", (data) => {
-      console.log("current Interaction " + data);
+      //console.log("current Interaction " + data);
       if (data=="enable"){
         this.setState({  interactionDisabled: false  });
       }
@@ -147,11 +147,11 @@ class CallCenterLogin extends React.Component {
     this.state.socket.off("availableRoles");
   }
   agentLogin() {
-    console.log("logging in as agent");
+    //console.log("logging in as agent");
     this.state.socket.emit("joinCall", "agent");
   }
   clientLogin() {
-    console.log("logging in as client");
+    //console.log("logging in as client");
     this.state.socket.emit("joinCall", "client");
   }
   render(){

@@ -5,15 +5,16 @@ import { withStyles } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
-import HeadsetIcon from '@material-ui/icons/HeadsetMicTwoTone';
-import PersonIcon from '@material-ui/icons/PersonOutlineTwoTone';
+import SendIcon from '@material-ui/icons/SendRounded';
+import CancelIcon from '@material-ui/icons/CancelOutlined';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
 import ListItemText from '@material-ui/core/ListItemText';
-import Icon from '@material-ui/core/Icon';
-
+import InputBase from '@material-ui/core/InputBase';
+import Divider from '@material-ui/core/Divider';
+import IconButton from '@material-ui/core/IconButton';
 
 const styles = theme => ({
   paper: {
@@ -31,7 +32,32 @@ const styles = theme => ({
   },
   alignRight: {
     textAlign: 'right'
-  }
+  },
+  root: {
+    margin: theme.spacing.unit,
+
+    display: 'flex',
+  },
+  input: {
+    color: '#2196f3',
+    margin: 8,
+    marginLeft: 16,
+    flex: 1,
+  },
+  pendingInput: {
+    color: '#90caf9',
+    margin: 8,
+    marginLeft: 16,
+    flex: 1,
+  },
+  iconButton: {
+    padding: 10,
+  },
+  divider: {
+    width: 1,
+    height: 28,
+    margin: 4,
+  },
 });
 
 class MultilineOutput extends React.Component {
@@ -49,6 +75,7 @@ class MultilineOutput extends React.Component {
       userIcon: '',
       otherUserIcon: '',
       username: '',
+      textToApprove: '',
     };
   }
 
@@ -56,7 +83,11 @@ class MultilineOutput extends React.Component {
     const { classes } = this.props;
 
     let socket = this.props.socket;
+      socket.on('textNeedsApproval', (response) => {
+        this.setState({textToApprove: response.transcript,
+        isFinal: response.isfinal});
 
+      });
       socket.on('getTranscript', (response) => {
         this.setState({newText: response.transcript});
         if (this.state.newText != undefined){
@@ -160,6 +191,14 @@ class MultilineOutput extends React.Component {
   scrollToBottom = () => {
     this.messagesEnd.scrollIntoView({ behavior: "smooth" });
   }
+  cancelText = () => {
+    this.setState({textToApprove: ''});
+  }
+  approveText = () => {
+    let socket = this.props.socket;
+    socket.emit("translateAndSendThisText", this.state.textToApprove);
+    this.setState({textToApprove: ''});
+  }
 
   componentDidUpdate() {
     this.scrollToBottom();
@@ -168,15 +207,11 @@ class MultilineOutput extends React.Component {
       if(this.props.username=='client'){
         this.setState({
           username: this.props.username,
-          userIcon: <PersonIcon />,
-          otherUserIcon: <HeadsetIcon />
         });
       }
       else{
         this.setState({
           username: this.props.username,
-          userIcon: <HeadsetIcon />,
-          otherUserIcon: <PersonIcon />
         });
       }
     }
@@ -200,7 +235,23 @@ class MultilineOutput extends React.Component {
             <div style={{ float:"left", clear: "both" }} ref={(el) => { this.messagesEnd = el; }}>
             </div>
         </Paper>
+        {this.props.approveText?
+          <Paper elevation={1} className={classes.root} id="TextForApproval" ref="TextForApproval">
+            <Typography variant="subtitle1" className={this.state.isFinal ? classes.input : classes.pendingInput }>
+              {this.state.textToApprove}
+            </Typography>
+            <Divider className={classes.divider} />
+            <IconButton className={classes.iconButton} onClick={this.cancelText} aria-label="Search">
+              <CancelIcon />
+            </IconButton>
+            <Divider className={classes.divider} />
+            <IconButton color="primary" className={classes.iconButton} onClick={this.approveText} aria-label="Directions">
+              <SendIcon />
+            </IconButton>
+          </Paper>
+        : ''}
       </div>
+
     );
   }
 }
