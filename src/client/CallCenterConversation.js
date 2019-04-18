@@ -27,9 +27,11 @@ let active_source = false;
 const styles = theme => ({
   card: {
     maxWidth: 320,
+    height: '100%',
   },
   cardSelected: {
     maxWidth: 320,
+    height: '100%',
     backgroundColor: '#FFCCCC',
   },
   myAvatar: {
@@ -68,7 +70,6 @@ class CCConversation extends React.Component {
     super(props);
     this.state = {
       audio: false,
-      theirAudio: false,
       socket: this.props.socket,
       micText: 'Push To Talk',
       username: '',
@@ -78,7 +79,7 @@ class CCConversation extends React.Component {
       myLanguage: '',
       theirUsername: '',
       theirAvatar: '',
-      theirLanguage: '',
+      theirLanguage: 'UNAVAILABLE',
       started: false,
       reset: 0,
       audioVizData: new Uint8Array(0),
@@ -86,6 +87,10 @@ class CCConversation extends React.Component {
       selectedIndex: -1,
       selectedChar: '',
       recordingDisabled: false,
+      numberOfUsers: 1,
+      interactionMode: 'push-to-talk',
+      autoMute: true,
+      approveText: false,
     };
     this.toggleListen = this.toggleListen.bind(this);
     this.playAudioBuffer = this.playAudioBuffer.bind(this);
@@ -95,7 +100,22 @@ class CCConversation extends React.Component {
   componentDidMount() {
 
     this.state.socket.emit("getUsername", true);
+
     this.state.socket.on("myUsernameIs", (data) => {
+      let theirLanguage = data.otherLanguage;
+      if (!data.otherLanguage) {
+        theirLanguage = 'UNAVAILABLE';
+        this.setState({
+          recordingDisabled: true,
+          micText: 'WAITING FOR OTHER CALLER'
+        });
+      }
+      else {
+        this.setState({
+          recordingDisabled: false,
+          micText: 'PUSH TO TALK'
+        });
+      }
 
       if(data.username=="agent"){
         this.setState({
@@ -107,9 +127,12 @@ class CCConversation extends React.Component {
           theirUsername: 'Client',
           theirUserChar: 'c',
           theirAvatar: <PersonIcon/>,
-          theirLanguage: data.otherLanguage,
+          theirLanguage: theirLanguage,
           agentColor: 'primary',
-          clientColor: 'secondary'
+          clientColor: 'secondary',
+          interactionMode: data.interactionMode,
+          autoMute: data.autoMute,
+          approveText: data.approveText,
         });
       }
       else{
@@ -122,9 +145,12 @@ class CCConversation extends React.Component {
           theirUsername: 'Agent',
           theirUserChar: 'a',
           theirAvatar: <HeadsetIcon/>,
-          theirLanguage: data.otherLanguage,
+          theirLanguage: theirLanguage,
           agentColor: 'secondary',
-          clientColor: 'primary'
+          clientColor: 'primary',
+          interactionMode: data.interactionMode,
+          autoMute: data.autoMute,
+          approveText: data.approveText,
         });
       }
     });
@@ -141,7 +167,7 @@ class CCConversation extends React.Component {
           micText: 'PUSH TO TALK'
         });
       }
-      else if(!this.state.audio){
+      else if(!this.state.audio && (this.state.interactionMode=='push-to-talk')){
         this.setState({recordingDisabled: true,
           micText: 'UNAVAILABLE'
         });
@@ -153,17 +179,44 @@ class CCConversation extends React.Component {
       });
     });
     this.state.socket.on("stopRecording", (data) => {
+      console.log("push-to-talk stopped mic");
       this.stopListening();
     });
-    this.state.socket.on("updateYourself", (status) => {
-      this.state.socket.emit("getUsername", true);
+    this.state.socket.on("updateYourself", (numberOfUsers) => {
+      console.log("updating if number changes " + numberOfUsers);
+
+      if(this.state.numberOfUsers!==numberOfUsers) {
+        this.state.socket.emit("getUsername", true);
+
+      }
+
+        this.setState({numberOfUsers: numberOfUsers});
+
+
     });
     this.state.socket.on('audiodata', (data) => {
       if(!this.state.started){
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        this.setState({started:true});
+        //this.setState({started:true});
       }
       this.playAudioBuffer(data, this.audioContext, true);
+    });
+    this.state.socket.on('callerChange', (data) => {
+      if (!this.state.theirLanguage){
+        console.log("waiting for other caller");
+        this.setState({
+          myStatus: "waiting for caller",
+          recordingDisabled: true,
+          micText: 'WAITING FOR OTHER CALLER'
+        });
+
+      }
+      else {
+        this.setState({
+          recordingDisabled: false,
+          micText: 'PUSH TO TALK'
+        });
+      }
     });
   }
 
@@ -220,11 +273,15 @@ class CCConversation extends React.Component {
   toggleListen() {
     if (!this.state.started) {
       this.setState({micText: 'Push To Talk', started: true});
+      this.state.socket.emit("clearTextBuffers", true);
     }
     if (this.state.audio) {
-      console.log("force final and stop");
-      this.state.socket.emit('forceFinal', true);
+      if(this.state.interactionMode!=='continuous'){
+        console.log("force final and stop");
+        this.state.socket.emit('forceFinal', true);
+      }
       this.stopListening();
+      this.setState({started: false});
     } else {
       console.log("starting to listen");
       this.startListening();
@@ -237,6 +294,11 @@ class CCConversation extends React.Component {
       source.disconnect();
       active_source=false;
     }
+    if(this.state.autoMute){
+      console.log("auto-muting now");
+      this.stopListening();
+    }
+
     context.decodeAudioData(audioFromString, (buffer) => {
         active_source = true;
         audioBuffer = buffer;
@@ -248,6 +310,10 @@ class CCConversation extends React.Component {
           source.start(0);
           active_source = true;
           source.onended = (event) => {
+            if(this.state.autoMute && this.state.started){
+              console.log("auto-unmuting now");
+              this.startListening();
+            }
             this.state.socket.emit("audioPlaybackComplete", true);
           };
         } catch (e) {
@@ -299,7 +365,15 @@ class CCConversation extends React.Component {
             </Card>
           </Grid>
           <Grid item xs={12}>
-            <Button variant="contained" className={classes.button} color={this.state.audio ? 'secondary' : 'primary'} onClick={this.toggleListen} disabled={this.state.recordingDisabled} >{this.state.audio ? 'Mic Active' : this.state.micText}</Button>
+            <Button
+              variant="contained"
+              className={classes.button}
+              color={this.state.audio ? 'secondary' : 'primary'}
+              onClick={this.toggleListen}
+              disabled={this.state.recordingDisabled}
+            >
+                {this.state.audio ? 'Mic Active' : this.state.micText}
+            </Button>
           </Grid>
           <Grid item xs={12}>
             <MultilineOutput socket={this.state.socket} username={this.state.username}/>

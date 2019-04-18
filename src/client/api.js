@@ -12,8 +12,8 @@ function getVoiceList(cb) {
 function setVoiceCode(voiceCode){
   socket.emit("voiceCode", voiceCode);
 }
-
 function setInteractionMode(interactionMode){
+  console.log("socket is " + interactionMode);
   socket.emit("interactionMode", interactionMode);
 }
 function setAutoMute(autoMute){

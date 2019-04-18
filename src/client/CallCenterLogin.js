@@ -32,6 +32,9 @@ const styles = theme => ({
   checkbox: {
     minWidth: 260,
   },
+  greyedOut: {
+    color: '#333333'
+  }
 });
 
 class CallCenterLogin extends React.Component {
@@ -43,6 +46,7 @@ class CallCenterLogin extends React.Component {
       agentDisabled: false,
       clientDisabled: false,
       interactionMode: 'push-to-talk',
+      interactionDisabled: false,
       textApprovalRequired: false,
       approvalDisabled: false,
       muteOnPlayback: true,
@@ -85,7 +89,10 @@ class CallCenterLogin extends React.Component {
       this.setState({ textApprovalRequired: event.target.checked }, () => setApproveText(this.state.textApprovalRequired));
     };
   componentDidMount() {
+    setInteractionMode(this.state.interactionMode);
+
     this.state.socket.emit("getAvailableRoles", true);
+
 
     this.state.socket.on("availableRoles", (roles) => {
       this.setState({
@@ -102,9 +109,37 @@ class CallCenterLogin extends React.Component {
           this.setState({clientDisabled:true});
         }
       }
+
     });
     this.state.socket.on("resetLogin", (data) => {
       this.state.socket.emit("resetMyData", true);
+    });
+    this.state.socket.on("getInteractionMode", (data) => {
+      console.log("current Interaction " + data);
+      if (data=="enable"){
+        this.setState({  interactionDisabled: false  });
+      }
+      else if(data=='continuous'){
+        this.setState({
+          interactionMode: data,
+          interactionDisabled: true,
+          muteOnPlayback: true,
+          muteDisabled: false,
+          approvalDisabled: true,
+          textApprovalRequired: false,
+        });
+      }
+      else if (data=='push-to-talk'){
+        this.setState({
+          interactionMode: data,
+          interactionDisabled: true,
+          muteOnPlayback: true,
+          muteDisabled: true,
+          approvalDisabled: false,
+          textApprovalRequired: false,
+        });
+      }
+
     });
   }
   componentWillUnmount() {
@@ -135,7 +170,7 @@ class CallCenterLogin extends React.Component {
 
           <Grid item xs={12}>
             <div align="center">
-              <FormControl>
+              <FormControl disabled={this.state.interactionDisabled}>
                 <InputLabel htmlFor="interaction-select">Select Interaction Mode</InputLabel>
                 <Select
                   native
@@ -197,7 +232,7 @@ class CallCenterLogin extends React.Component {
               <IconButton aria-label="Agent Login" onClick={this.agentLogin} disabled={this.state.agentDisabled} color='primary'>
                 <HeadsetIcon style={{ fontSize: 70 }}/>
               </IconButton>
-              <Typography variant="h6" color='primary'>AGENT</Typography>
+              <Typography variant="h6" color={this.state.agentDisabled ? 'error' : 'primary'}>AGENT</Typography>
             </div>
               </Grid>
               <Grid item xs={3}>
@@ -205,7 +240,7 @@ class CallCenterLogin extends React.Component {
               <IconButton aria-label="Client Login" label='client' onClick={this.clientLogin} disabled={this.state.clientDisabled} color='secondary'>
                 <PersonIcon style={{ fontSize: 70 }}/>
               </IconButton>
-              <Typography variant="h6" color='secondary'>CLIENT</Typography>
+              <Typography variant="h6" color={this.state.clientDisabled ? 'error' : 'secondary'}>CLIENT</Typography>
             </div>
           </Grid>
           <Grid item xs={3}></Grid>

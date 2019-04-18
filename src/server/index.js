@@ -45,6 +45,8 @@ io.on('connection', (socket) => {
     timeOffset = 0,
     lastTranscriptWasFinal = false;
 
+  io.sockets.emit("updateYourself", usernames.length);
+
   function resetClient(){
     username = '';
     autoMute = true;
@@ -68,6 +70,8 @@ io.on('connection', (socket) => {
     newStream = true;
     timeOffset = 0;
     lastTranscriptWasFinal = false;
+
+  io.sockets.emit("updateYourself", usernames.length);
   }
 
   socket.on('translate-text', function(data){
@@ -79,7 +83,13 @@ io.on('connection', (socket) => {
   });
   socket.on('interactionMode', function(data) {
     console.log("interactionMode: " + data);
-    interactionMode = data;
+    if(usernames.length==0){
+      interactionMode = data;
+      io.sockets.emit("getInteractionMode", "enable");
+    }
+    if(usernames.length==1){
+      io.sockets.emit("getInteractionMode", interactionMode);
+    }
   });
   socket.on('autoMute', function(data) {
     console.log("autoMute: " + data);
@@ -99,6 +109,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on("startStreaming", function(data){
+    ttsText = '';
+    translateText = '';
     startStreaming();
     io.sockets.emit("allStatus", username + ' speaking');
     //socket.broadcast.emit("allStatus", username + ' speaking');
@@ -149,6 +161,14 @@ io.on('connection', (socket) => {
 
   socket.on('getAvailableRoles', function(data) {
     io.sockets.emit("availableRoles", usernames);
+    console.log("available roles: " + usernames.length);
+    if(usernames.length==1){
+      socket.broadcast.emit("getInteractionMode", interactionMode);
+    }
+    if(usernames.length==0){
+
+      socket.broadcast.emit("getInteractionMode", "enable");
+    }
     //socket.broadcast.emit("availableRoles", usernames);
   });
 
@@ -164,9 +184,14 @@ io.on('connection', (socket) => {
         console.log("setting " + usernames[i] + " language to " + userlanguages[i]);
       }
     }
+    if(usernames.length==1){
+      socket.broadcast.emit("getInteractionMode", interactionMode);
+    }
+    if(usernames.length==0){
 
+      socket.broadcast.emit("getInteractionMode", "enable");
+    }
     io.sockets.emit("availableRoles", usernames);
-    //socket.broadcast.emit("availableRoles", usernames);
     socket.emit("loginToCall", true);
   });
 
@@ -185,10 +210,14 @@ io.on('connection', (socket) => {
     const userInfo = {
       username: username,
       language: languageName,
-      otherLanguage: otherLanguage
+      otherLanguage: otherLanguage,
+      interactionMode: interactionMode,
+      autoMute: autoMute,
+      approveText: approveText,
     };
-      socket.emit("myUsernameIs", userInfo);
-      socket.broadcast.emit("updateYourself", true);
+
+    socket.emit("myUsernameIs", userInfo);
+    socket.broadcast.emit("updateYourself", usernames.length);
   });
 
   socket.on("resetCall", function(data){
@@ -321,6 +350,7 @@ io.on('connection', (socket) => {
       usernames.splice(1,1);
       userlanguages.splice(1,1);
     }
+    io.sockets.emit("updateYourself", usernames.length);
   });
 
   async function translateOnly(){
