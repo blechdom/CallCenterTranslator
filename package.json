@@ -43,6 +43,7 @@
     "fs": "0.0.1-security",
     "fs-extra": "^0.30.0",
     "html-webpack-plugin": "^3.2.0",
+    "material-ui": "^1.0.0-beta.47",
     "nodemon": "^1.17.3",
     "path": "^0.12.7",
     "progress-stream": "^2.0.0",

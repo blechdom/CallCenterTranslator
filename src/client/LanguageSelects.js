@@ -6,7 +6,7 @@ import InputLabel from '@material-ui/core/InputLabel';
 import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
 import Grid from '@material-ui/core/Grid';
-import { getVoiceList } from './api';
+import { getVoiceList, setVoiceCode } from './api';
 
 const styles = theme => ({
   root: {
@@ -71,15 +71,8 @@ class LanguageSelects extends React.Component {
   };
   handleVoiceChange = (event) => {
     //console.log("handle voice change " + event.target.value);
-    this.setState({ voiceType: event.target.value }, () => this.emitVoiceCode());
+    this.setState({ voiceType: event.target.value }, () => setVoiceCode(this.state.voiceType));
   };
-
-  emitVoiceCode(){
-    let voiceType = this.state.voiceType;
-    //console.log("emitting voice code " + voiceType);
-
-    this.state.socket.emit("voiceCode", voiceType);
-  }
 
   populateVoiceSynthSelect(){
     let languageCode = this.state.languageCode;

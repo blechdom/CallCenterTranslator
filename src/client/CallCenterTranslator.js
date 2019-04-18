@@ -17,6 +17,25 @@ import Grow from '@material-ui/core/Grow';
 import Popper from '@material-ui/core/Popper';
 import CallCenterLogin from './CallCenterLogin';
 import CallCenterConversation from './CallCenterConversation';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import ListItemText from '@material-ui/core/ListItemText';
+import ListSubheader from '@material-ui/core/ListSubheader';
+import Switch from '@material-ui/core/Switch';
+import InputLabel from '@material-ui/core/InputLabel';
+import FormHelperText from '@material-ui/core/FormHelperText';
+import FormControl from '@material-ui/core/FormControl';
+import Input from '@material-ui/core/Input';
+import Select from '@material-ui/core/Select';
+import NativeSelect from '@material-ui/core/NativeSelect';
+import HelpDialog from './HelpDialog';
 import { socket } from './api';
 
 
@@ -66,6 +85,17 @@ const styles = theme => ({
     marginRight: '-5px',
     color: 'white',
   },
+  formControl: {
+    align: "center"
+  },
+  dialogList: {
+    align: "center",
+    minWidth: 560,
+    backgroundColor: theme.palette.background.paper,
+  },
+  captionText: {
+    padding:theme.spacing.unit * 3,
+  }
 });
 
 
@@ -79,28 +109,40 @@ class CallCenterTranslator extends React.Component {
       settingsButton: '',
       titleSpacing: '',
       open: false,
+      helpOpen: false,
     };
   }
-
+  handleHelpOpen = () => {
+    this.setState({helpOpen:true});
+  }
+  handleHelpClose = () => {
+      this.setState({helpOpen:false});
+  }
   handleToggle = () => {
     this.setState({ open: !this.state.open });
-    console.log("open " + this.state.open);
   };
   handleMenuClose = event => {
     if (this.anchorEl.contains(event.target)) {
       return;
     }
     this.setState({ open: false });
-    console.log("open " + this.state.close);
   };
 
   handleClose = () => {
     this.setState({ open: false });
     socket.emit("leaveCall", true);
   };
+
+   handleClickOpen = () => {
+      this.setState({
+        open: true,
+      });
+    };
+
   componentDidMount() {
     const { classes } = this.props;
 
+    this.setState()
     socket.on("resetTranslator", (data) => {
       this.setState({
         open: false,
@@ -116,7 +158,7 @@ class CallCenterTranslator extends React.Component {
         currentFormNumber: 1,
         currentForm: <CallCenterConversation socket={socket} audioContext={this.audioContext}/>,
         settingsButton: '',
-        titleSpacing: '\u00A0\u00A0\u00A0\u00A0\u00A0',
+        titleSpacing: '',
       });
     });
   }
@@ -125,7 +167,6 @@ class CallCenterTranslator extends React.Component {
     socket.off("loginToCall");
   }
   startOver = () => {
-    console.log("resetting call");
     socket.emit("resetCall", true);
   }
 
@@ -163,6 +204,7 @@ class CallCenterTranslator extends React.Component {
                           <MenuList>
                             {this.state.currentFormNumber ? <MenuItem onClick={this.handleClose}>Leave Call</MenuItem> : undefined}
                             <MenuItem onClick={this.startOver}>Reset Call</MenuItem>
+                            <MenuItem onClick={this.handleHelpOpen}>Help</MenuItem>
                           </MenuList>
                         </ClickAwayListener>
                       </Paper>
@@ -177,6 +219,10 @@ class CallCenterTranslator extends React.Component {
               </div>
             </React.Fragment>
           </Paper>
+          <HelpDialog
+            open={this.state.helpOpen}
+            onClose={this.handleHelpClose}
+          />
         </main>
       </React.Fragment>
     );

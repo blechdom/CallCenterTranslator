@@ -1,11 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from './App';
 import { createMuiTheme } from '@material-ui/core/styles';
 import { MuiThemeProvider } from '@material-ui/core/styles';
 import blue from '@material-ui/core/colors/blue';
 import red from '@material-ui/core/colors/red';
 import green from '@material-ui/core/colors/green';
+import CallCenterTranslator from './CallCenterTranslator';
 
 const theme = createMuiTheme({
   palette: {
@@ -17,4 +17,4 @@ const theme = createMuiTheme({
     },
 });
 
-ReactDOM.render(<MuiThemeProvider theme={theme}><App /></MuiThemeProvider>, document.getElementById('root'));
+ReactDOM.render(<MuiThemeProvider theme={theme}><CallCenterTranslator /></MuiThemeProvider>, document.getElementById('root'));
