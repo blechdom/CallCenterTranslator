@@ -1,5 +1,5 @@
 import openSocket from 'socket.io-client';
-const socket = openSocket('http://localhost:8080');
+const socket = openSocket();
 
 function getVoiceList(cb) {
   socket.emit('getVoiceList', true);
@@ -13,7 +13,6 @@ function setVoiceCode(voiceCode){
   socket.emit("voiceCode", voiceCode);
 }
 function setInteractionMode(interactionMode){
-  console.log("socket is " + interactionMode);
   socket.emit("interactionMode", interactionMode);
 }
 function setAutoMute(autoMute){

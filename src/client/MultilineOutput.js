@@ -228,13 +228,6 @@ class MultilineOutput extends React.Component {
 
     return (
       <div>
-        <Paper elevation={1} className={classes.paper} id="Transcript" ref="Transcript">
-            <List>
-              {this.state.outputText}
-            </List>
-            <div style={{ float:"left", clear: "both" }} ref={(el) => { this.messagesEnd = el; }}>
-            </div>
-        </Paper>
         {this.props.approveText?
           <Paper elevation={1} className={classes.root} id="TextForApproval" ref="TextForApproval">
             <Typography variant="subtitle1" className={this.state.isFinal ? classes.input : classes.pendingInput }>
@@ -250,6 +243,14 @@ class MultilineOutput extends React.Component {
             </IconButton>
           </Paper>
         : ''}
+        <Paper elevation={1} className={classes.paper} id="Transcript" ref="Transcript">
+            <List>
+              {this.state.outputText}
+            </List>
+            <div style={{ float:"left", clear: "both" }} ref={(el) => { this.messagesEnd = el; }}>
+            </div>
+        </Paper>
+
       </div>
 
     );

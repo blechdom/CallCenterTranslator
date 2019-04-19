@@ -145,6 +145,7 @@ class CallCenterLogin extends React.Component {
   componentWillUnmount() {
     this.state.socket.off("resetLogin");
     this.state.socket.off("availableRoles");
+    this.state.socket.off("getInteractionMode");
   }
   agentLogin() {
     //console.log("logging in as agent");

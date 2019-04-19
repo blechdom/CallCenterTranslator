@@ -25,11 +25,12 @@ let audioBuffer = null;
 let active_source = false;
 
 const styles = theme => ({
-  card: {
+  unselected: {
     maxWidth: 320,
     height: '100%',
+    backgroundColor: '#FFFFFF',
   },
-  cardSelected: {
+  selected: {
     maxWidth: 320,
     height: '100%',
     backgroundColor: '#FFCCCC',
@@ -52,17 +53,9 @@ const styles = theme => ({
     width:'98%',
     align: 'center',
   },
-  statusList: {
+  status: {
     align: 'center',
-    paddingTop: '0px',
-    marginTop: '0px'
   },
-  clientSelected: {
-    backgroundColor: "#ce93d8 !important",
-  },
-  agentSelected: {
-    backgroundColor: "#ce93d8 !important",
-  }
 });
 
 class CCConversation extends React.Component {
@@ -84,13 +77,16 @@ class CCConversation extends React.Component {
       reset: 0,
       audioVizData: new Uint8Array(0),
       theirAudioVizData: new Uint8Array(0),
-      selectedIndex: -1,
       selectedChar: '',
       recordingDisabled: false,
       numberOfUsers: 1,
       interactionMode: 'push-to-talk',
       autoMute: true,
       approveText: false,
+      myStatus: '',
+      theirStatus: '',
+      myCardSelected: false,
+      theirCardSelected: false
     };
     this.toggleListen = this.toggleListen.bind(this);
     this.playAudioBuffer = this.playAudioBuffer.bind(this);
@@ -102,18 +98,27 @@ class CCConversation extends React.Component {
     this.state.socket.emit("getUsername", true);
 
     this.state.socket.on("myUsernameIs", (data) => {
-      let theirLanguage = data.otherLanguage;
+      let theirLanguage = '';
       if (!data.otherLanguage) {
         theirLanguage = 'UNAVAILABLE';
         this.setState({
           recordingDisabled: true,
-          micText: 'WAITING FOR OTHER CALLER'
+          micText: 'WAITING FOR OTHER CALLER',
+          myStatus: "Waiting",
+          theirStatus: 'Unavailable',
+          myCardSelected: false,
+          theirCardSelected: false
         });
       }
       else {
+        theirLanguage = data.otherLanguage;
         this.setState({
           recordingDisabled: false,
-          micText: 'PUSH TO TALK'
+          micText: 'PUSH TO TALK',
+          myStatus: 'READY',
+          theirStatus: 'READY',
+          myCardSelected: false,
+          theirCardSelected: false
         });
       }
 
@@ -159,27 +164,69 @@ class CCConversation extends React.Component {
       this.setState({theirAudioVizData: uint8Arr});
     });
     this.state.socket.on("allStatus", (status) => {
+      console.log("status: " + status);
       if(!this.state.theirLanguage){
         status = 'open';
       }
       if(status=='open'){
-        this.setState({recordingDisabled: false,
-          micText: 'PUSH TO TALK'
+        this.setState({
+          recordingDisabled: false,
+          micText: 'PUSH TO TALK',
+          myCardSelected: false,
+          theirCardSelected: false,
         });
       }
       else if(!this.state.audio && (this.state.interactionMode=='push-to-talk')){
-        this.setState({recordingDisabled: true,
-          micText: 'UNAVAILABLE'
+        this.setState({
+          recordingDisabled: true,
+          micText: 'UNAVAILABLE',
+          myCardSelected: false,
         });
       }
-      console.log("status " + status);
-      this.setState({
-        selectedIndex: status,
-        selectedChar: status.charAt(0),
-      });
+      if((status=='open') && (this.state.interactionMode=='push-to-talk')){
+        this.setState({
+          myStatus: 'Microphone Available',
+          theirStatus: 'Microphone Available',
+          myCardSelected: false,
+          theirCardSelected: false,
+        });
+      }
+      else if(status.charAt(0)==this.state.userChar){
+        this.setState({
+          myStatus: status,
+          selectedChar: status.charAt(0),
+          myCardSelected: true,
+        });
+        if(this.state.interactionMode=='push-to-talk'){
+          let theirStatus = "Waiting";
+          if(status.endsWith("playback")){
+            theirStatus = "Listening";
+          }
+          this.setState({
+            theirStatus: theirStatus,
+          });
+        }
+      }
+      else if(status.charAt(0)==this.state.theirUserChar){
+        this.setState({
+          theirStatus: status,
+          selectedChar: status.charAt(0),
+          theirCardSelected: true,
+        });
+        if(this.state.interactionMode=='push-to-talk'){
+          let myStatus = "Waiting";
+          if(status.endsWith("playback")){
+            myStatus = "Listening";
+          }
+          this.setState({
+            myStatus: myStatus,
+          });
+        }
+      }
+
     });
     this.state.socket.on("stopRecording", (data) => {
-      console.log("push-to-talk stopped mic");
+      //console.log("push-to-talk stopped mic");
       this.stopListening();
     });
     this.state.socket.on("updateYourself", (numberOfUsers) => {
@@ -203,7 +250,7 @@ class CCConversation extends React.Component {
     });
     this.state.socket.on('callerChange', (data) => {
       if (!this.state.theirLanguage){
-        console.log("waiting for other caller");
+        //console.log("waiting for other caller");
         this.setState({
           myStatus: "waiting for caller",
           recordingDisabled: true,
@@ -242,9 +289,18 @@ class CCConversation extends React.Component {
       startStreaming(this.audioContext);
       this.rafId = requestAnimationFrame(this.tick);
       this.dataArray = new Uint8Array(0);
-      this.setState({audio: true, started: true});
+      this.setState({
+        audio: true,
+        started: true,
+      });
+      if(this.state.interactionMode=='push-to-talk'){
+        this.setState({
+          theirStatus: 'Waiting'
+        });
+      }
     }
   }
+
 
   tick() {
     let audioVizData = new Uint8Array(0);
@@ -272,18 +328,20 @@ class CCConversation extends React.Component {
   }
   toggleListen() {
     if (!this.state.started) {
-      this.setState({micText: 'Push To Talk', started: true});
+      this.setState({
+        micText: 'Push To Talk',
+        started: true,
+      });
       this.state.socket.emit("clearTextBuffers", true);
     }
     if (this.state.audio) {
       if(this.state.interactionMode!=='continuous'){
-        //console.log("force final and stop");
         this.state.socket.emit('forceFinal', true);
       }
       this.stopListening();
       this.setState({started: false});
     } else {
-      console.log("starting to listen");
+      //console.log("starting to listen");
       this.startListening();
     }
   }
@@ -295,7 +353,7 @@ class CCConversation extends React.Component {
       active_source=false;
     }
     if(this.state.autoMute){
-      console.log("auto-muting now");
+      //console.log("auto-muting now");
       this.stopListening();
     }
 
@@ -310,8 +368,9 @@ class CCConversation extends React.Component {
           source.start(0);
           active_source = true;
           source.onended = (event) => {
-            if(this.state.autoMute && this.state.started){
-              console.log("auto-unmuting now");
+
+            if(this.state.autoMute && this.state.started && (this.state.interactionMode=='continuous')){
+              //console.log("auto-unmuting now");
               this.startListening();
             }
             this.state.socket.emit("audioPlaybackComplete", true);
@@ -332,7 +391,7 @@ class CCConversation extends React.Component {
       <React.Fragment>
         <Grid container spacing={8}>
           <Grid item xs={6}>
-            <Card className={this.state.selectedChar === this.state.userChar ? classes.cardSelected : classes.card}>
+            <Card className={(this.state.myCardSelected  && (this.state.interactionMode=='push-to-talk'))? classes.selected : classes.unselected}>
               <CardHeader
                 avatar={
                   <Avatar aria-label="Chat-Role" className={classes.myAvatar}>
@@ -345,11 +404,13 @@ class CCConversation extends React.Component {
               <CardContent>
                 <div align="center" style={{ marginLeft: -16}} ><AudioVisualiser audioVizData={this.state.audioVizData} color='#1976d2'/></div>
               </CardContent>
-
+              {this.state.interactionMode=='push-to-talk' ?
+                <Typography align="center" color="primary" variant="button">{this.state.myStatus}</Typography>
+              : ''}
             </Card>
           </Grid>
           <Grid item xs={6}>
-            <Card className={this.state.selectedChar === this.state.theirUserChar ? classes.cardSelected : classes.card}>
+            <Card className={(this.state.theirCardSelected  && (this.state.interactionMode=='push-to-talk')) ? classes.selected : classes.unselected}>
               <CardHeader
                 avatar={
                   <Avatar aria-label="Chat-Role" className={classes.theirAvatar}>
@@ -362,6 +423,9 @@ class CCConversation extends React.Component {
               <CardContent>
                 <div align="center" style={{ marginLeft: -16}}><AudioVisualiser audioVizData={this.state.theirAudioVizData} color='#388e3c'/></div>
               </CardContent>
+              {this.state.interactionMode=='push-to-talk' ?
+                <Typography align="center" color="secondary" variant="button">{this.state.theirStatus}</Typography>
+              : ''}
             </Card>
           </Grid>
           <Grid item xs={12}>
