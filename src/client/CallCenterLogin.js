@@ -17,7 +17,7 @@ import Select from '@material-ui/core/Select';
 import Checkbox from '@material-ui/core/Checkbox';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import HelpDialog from './HelpDialog';
-import { setInteractionMode, setAutoMute, setApproveText } from './api';
+import { setAutoMute, setApproveText } from './api';
 
 
 const styles = theme => ({
@@ -63,8 +63,7 @@ class CallCenterLogin extends React.Component {
       this.setState({helpOpen:false});
   }
   handleModeChange = (event) => {
-    //console.log(event.target.value);
-    this.setState({ interactionMode: event.target.value }, () => setInteractionMode(this.state.interactionMode));
+    this.setState({ interactionMode: event.target.value });
     if(event.target.value=='continuous'){
       this.setState({
         muteOnPlayback: true,
@@ -89,7 +88,6 @@ class CallCenterLogin extends React.Component {
       this.setState({ textApprovalRequired: event.target.checked }, () => setApproveText(this.state.textApprovalRequired));
     };
   componentDidMount() {
-    setInteractionMode(this.state.interactionMode);
 
     this.state.socket.emit("getAvailableRoles", true);
 
@@ -148,12 +146,12 @@ class CallCenterLogin extends React.Component {
     this.state.socket.off("getInteractionMode");
   }
   agentLogin() {
-    //console.log("logging in as agent");
-    this.state.socket.emit("joinCall", "agent");
+    let login = {username: "agent", interactionMode: this.state.interactionMode };
+    this.state.socket.emit("joinCall", login);
   }
   clientLogin() {
-    //console.log("logging in as client");
-    this.state.socket.emit("joinCall", "client");
+    let login = {username: "client", interactionMode: this.state.interactionMode };
+    this.state.socket.emit("joinCall", login);
   }
   render(){
     const { classes } = this.props;

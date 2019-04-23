@@ -81,6 +81,7 @@ class CCConversation extends React.Component {
       recordingDisabled: false,
       numberOfUsers: 1,
       interactionMode: 'push-to-talk',
+      interactionText: '',
       autoMute: true,
       approveText: false,
       myStatus: '',
@@ -99,6 +100,19 @@ class CCConversation extends React.Component {
 
     this.state.socket.on("myUsernameIs", (data) => {
       let theirLanguage = '';
+      let interactionText = '';
+      if(data.interactionMode == 'push-to-talk'){
+        interactionText = "Push To Talk Mode";
+        if(data.approveText){
+          interactionText = interactionText + " (with text approval)";
+        }
+      }
+      else {
+        interactionText = "Continuous Conversation Mode";
+        if(data.autoMute){
+          interactionText = interactionText + " (with Automatic Muting)";
+        }
+      }
       if (!data.otherLanguage) {
         theirLanguage = 'UNAVAILABLE';
         this.setState({
@@ -136,6 +150,7 @@ class CCConversation extends React.Component {
           agentColor: 'primary',
           clientColor: 'secondary',
           interactionMode: data.interactionMode,
+          interactionText: interactionText,
           autoMute: data.autoMute,
           approveText: data.approveText,
         });
@@ -154,6 +169,7 @@ class CCConversation extends React.Component {
           agentColor: 'secondary',
           clientColor: 'primary',
           interactionMode: data.interactionMode,
+          interactionText: interactionText,
           autoMute: data.autoMute,
           approveText: data.approveText,
         });
@@ -390,6 +406,9 @@ class CCConversation extends React.Component {
     return (
       <React.Fragment>
         <Grid container spacing={8}>
+          <Grid item xs={12}>
+            <Typography align="center" variant="button">{this.state.interactionText}</Typography>
+          </Grid>
           <Grid item xs={6}>
             <Card className={(this.state.myCardSelected  && (this.state.interactionMode=='push-to-talk'))? classes.selected : classes.unselected}>
               <CardHeader

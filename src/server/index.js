@@ -30,7 +30,7 @@ io.on('connection', (socket) => {
     translate = new Translate(),
     recognizeStream = null,
     ttsText = '',
-    translateText = '',
+    translateText = {},
     sttLanguageCode = 'en-US',
     voiceCode = 'en-US-Wavenet-D',
     speechLanguageCode = 'en-US-Wavenet-D',
@@ -56,7 +56,7 @@ io.on('connection', (socket) => {
     translate = new Translate();
     recognizeStream = null;
     ttsText = '';
-    translateText = '';
+    translateText = {};
     sttLanguageCode = 'en-US',
     voiceCode = 'en-US-Wavenet-D';
     speechLanguageCode = 'en-US-Wavenet-D';
@@ -78,11 +78,9 @@ io.on('connection', (socket) => {
     translateText.transcript = data;
   });
   socket.on('voiceCode', function(data) {
-    console.log("voice code: " + data);
     voiceCode = data;
   });
-  socket.on('interactionMode', function(data) {
-    console.log("interactionMode: " + data);
+  /*socket.on('interactionMode', function(data) {
     if(usernames.length==0){
       interactionMode = data;
       io.sockets.emit("getInteractionMode", "enable");
@@ -90,7 +88,7 @@ io.on('connection', (socket) => {
     if(usernames.length==1){
       io.sockets.emit("getInteractionMode", interactionMode);
     }
-  });
+  });*/
   socket.on('autoMute', function(data) {
     console.log("autoMute: " + data);
     autoMute = data;
@@ -109,12 +107,10 @@ io.on('connection', (socket) => {
   });
 
   socket.on("startStreaming", function(data){
-    ttsText = '';
-    translateText = '';
     startStreaming();
+    audioArray = [];
+    lastAudioArray = [];
     io.sockets.emit("allStatus", username + ' speaking');
-    //socket.broadcast.emit("allStatus", username + ' speaking');
-
   });
 
   socket.on('binaryStream', function(data) {
@@ -153,8 +149,8 @@ io.on('connection', (socket) => {
 
   socket.on("stopStreaming", function(data){
     if (interactionMode=='continuous'){
-      console.log("clear timeout and continuous");
       clearTimeout(restartTimeoutId);
+      lastAudioArray = [];
     }
     stopStreaming();
   });
@@ -174,8 +170,9 @@ io.on('connection', (socket) => {
 
   socket.on("joinCall", function(data){
     console.log(data + " has joined the call");
-    usernames.push(data);
-    username=data;
+    usernames.push(data.username);
+    username=data.username;
+    interactionMode = data.interactionMode;
     console.log("usernames: " + usernames);
     for(var i in usernames){
       console.log(usernames[i]);
@@ -184,11 +181,10 @@ io.on('connection', (socket) => {
         console.log("setting " + usernames[i] + " language to " + userlanguages[i]);
       }
     }
-    if(usernames.length==1){
-      socket.broadcast.emit("getInteractionMode", interactionMode);
+    if(usernames.length>0){
+      io.sockets.emit("getInteractionMode", interactionMode);
     }
     if(usernames.length==0){
-
       socket.broadcast.emit("getInteractionMode", "enable");
     }
     io.sockets.emit("availableRoles", usernames);
@@ -317,29 +313,43 @@ io.on('connection', (socket) => {
   });
 
   socket.on('forceFinal', function(data){
+    var otherCallersVoiceCode = '';
 
-    stopStreaming();
+    for(var i in usernames){
+      if(usernames[i] != username){
+        otherCallersVoiceCode = userlanguages[i];
+      }
+    }
     console.log("forcing final");
     if(translateText.transcript){
-
       translateText.isfinal = true;
-      ttsTranslateAndSendAudio();
+      ttsTranslateAndSendAudio(otherCallersVoiceCode);
     }
     else {
       io.sockets.emit("allStatus", 'open');
-      //socket.broadcast.emit("allStatus", 'open');
     }
+    if (interactionMode=='continuous'){
+      clearTimeout(restartTimeoutId);
+      lastAudioArray = [];
+    }
+    stopStreaming();
   });
 
   socket.on("audioPlaybackComplete", function(data){
-    console.log("playback complete for " + [socket.id]);
     io.sockets.emit("allStatus", 'open');
-    //socket.broadcast.emit("allStatus", 'open');
   });
   socket.on("myAudioVizData", function(data){
     socket.broadcast.emit("theirAudioVizData", { buffer: data });
   });
+
   socket.on("translateAndSendThisText", function(data){
+    var otherCallersVoiceCode = '';
+
+    for(var i in usernames){
+      if(usernames[i] != username){
+        otherCallersVoiceCode = userlanguages[i];
+      }
+    }
     var transcriptObject = {
       transcript: data,
       isfinal: true
@@ -347,14 +357,14 @@ io.on('connection', (socket) => {
 
     socket.broadcast.emit("getTheirTranscript", transcriptObject);
     translateText = transcriptObject;
-    //console.log("is final? " + JSON.stringify(translateText));
 
     socket.emit("stopRecording", true);
 
     console.log("translate and send audio to other caller");
-    ttsTranslateAndSendAudio();
-    
+    ttsTranslateAndSendAudio(otherCallersVoiceCode);
+
   });
+
   socket.on('disconnect', function() {
     console.log('client disconnected');
     let userRole = username;
@@ -369,25 +379,14 @@ io.on('connection', (socket) => {
     io.sockets.emit("updateYourself", usernames.length);
   });
 
-  async function translateOnly(){
-    //console.log("translating only");
-    var translateLanguageCode = '';
-    var otherCallersVoiceCode = '';
-    //console.log(username);
-    //console.log(usernames);
-    //console.log(userlanguages);
-    for(var i in usernames){
-      if(usernames[i] != username){
-        //console.log("other users language to translate mine into is: " + userlanguages[i]);
-        otherCallersVoiceCode = userlanguages[i];
-      }
-    }
+  async function translateOnly(otherCallersVoiceCode){
+
     if(otherCallersVoiceCode){
       var translateLanguageCode = otherCallersVoiceCode.substring(0, 2); //en
       var target = translateLanguageCode;
-      //console.log("translating into " + target);
+
       var text = translateText.transcript;
-      //console.log("text to translate: " + text);
+
       let [translations] = await translate.translate(text, target);
       translations = Array.isArray(translations) ? translations : [translations];
       var translationConcatenated = "";
@@ -401,8 +400,8 @@ io.on('connection', (socket) => {
         isfinal: translateText.isfinal
       }
       socket.emit("getTranscript", translatedObject);
-      //socket.broadcast.emit("getTranslation", translatedObject);
       socket.broadcast.emit("getTheirTranslation", translatedObject);
+
     }
     else{
       let translatedObject = {
@@ -411,44 +410,14 @@ io.on('connection', (socket) => {
         isfinal: translateText.isfinal
       }
       socket.emit("getTranscript", translatedObject);
-      //console.log("no other caller yet");
     }
+
   }
 
-  async function ttsTranslateAndSendAudio(){
+  async function ttsTranslateAndSendAudio(otherCallersVoiceCode){
     io.sockets.emit("allStatus", username + ' processing');
-    //socket.broadcast.emit("allStatus", username + ' processing');
-    var translateLanguageCode = '';
-    var otherCallersVoiceCode = '';
-    for(var i in usernames){
-      if(usernames[i] != username){
-        //console.log("other users language to translate mine into is: " + userlanguages[i]);
-        otherCallersVoiceCode = userlanguages[i];
-      }
-    }
+    await translateOnly(otherCallersVoiceCode);
     if(otherCallersVoiceCode){
-      var translateLanguageCode = otherCallersVoiceCode.substring(0, 2); //en
-      var target = translateLanguageCode;
-      //console.log("translating into " + target);
-      var text = translateText.transcript;
-      //console.log("text to translate: " + text);
-      let [translations] = await translate.translate(text, target);
-      translations = Array.isArray(translations) ? translations : [translations];
-      var translationConcatenated = "";
-      translations.forEach((translation, i) => {
-        translationConcatenated += translation + " ";
-      });
-      ttsText = translationConcatenated;
-      let translatedObject = {
-        transcript: translateText.transcript,
-        translation: translationConcatenated,
-        isfinal: translateText.isfinal
-      }
-      socket.emit("getTranscript", translatedObject);
-      //socket.broadcast.emit("getTranslation", translatedObject);
-      socket.broadcast.emit("getTheirTranslation", translatedObject);
-
-
       var ttsRequest = {
         voice: {
           languageCode: otherCallersVoiceCode.substring(0,5),
@@ -462,21 +431,12 @@ io.on('connection', (socket) => {
         await ttsClient.synthesizeSpeech(ttsRequest);
         socket.broadcast.emit('audiodata', response.audioContent);
         io.sockets.emit("allStatus", username + ' playback');
-        //socket.broadcast.emit("allStatus", username + ' playback');
-    }
-    else{
-        let translatedObject = {
-          transcript: translateText.transcript,
-          translation: "(...waiting for other caller...)",
-          isfinal: translateText.isfinal
-        }
-        socket.emit("getTranscript", translatedObject);
-      //console.log("no other caller yet");
     }
   }
   function startStreaming() {
+    ttsText = '';
+    translateText = {};
     if(interactionMode=='continuous'){
-      console.log("clear audio array and continuous");
       audioArray = [];
     }
     let langCode = '';
@@ -503,7 +463,6 @@ io.on('connection', (socket) => {
         .on('data', speechCallback);
 
       if(interactionMode=='continuous'){
-        console.log("restartTimeout and continuous");
         restartTimeoutId =
           setTimeout(restartStreaming, streamingLimit);
       }
@@ -515,75 +474,76 @@ io.on('connection', (socket) => {
         recognizeStream = null;
       }
       if(interactionMode=='continuous'){
-        console.log("stopping and continuous");
         if(resultEndTime>0){
             finalRequestEndTime = isFinalEndTime;
         }
         resultEndTime = 0;
-
-        //isFinalEndTime = resultEndTime;
-        resultEndTime = 0;
-        //console.log("final end time is " + isFinalEndTime);
         lastAudioArray = [];
         lastAudioArray = audioArray;
-
-        newStream=true;
       }
     }
     function restartStreaming() {
-      console.log("restarting stream");
       stopStreaming();
-      //restartCounter++;
-      //socket.emit("resetStreamOccurred", (streamingLimit * restartCounter));
+      newStream=true;
       startStreaming();
     }
     const speechCallback = (stream) => {
+        var translateLanguageCode = '';
+        var otherCallersVoiceCode = '';
+
+        for(var i in usernames){
+          if(usernames[i] != username){
+            otherCallersVoiceCode = userlanguages[i];
+          }
+        }
         if (stream.results[0] && stream.results[0].alternatives[0]) {
+
+          var transcriptObject = {
+            transcript: stream.results[0].alternatives[0].transcript,
+            isfinal: stream.results[0].isFinal
+          };
+
           if(interactionMode=='continuous'){
-                resultEndTime = stream.results[0].resultEndTime.seconds * 1000 +
-                  Math.round(stream.results[0].resultEndTime.nanos / 1000000);
-              //}
-              let correctedTime =
-                resultEndTime - timeOffset + (streamingLimit * restartCounter);
-          }
-          if(approveText){
-            var transcriptObject = {
-              transcript: stream.results[0].alternatives[0].transcript,
-              isfinal: stream.results[0].isFinal
-            };
-            socket.emit("textNeedsApproval", transcriptObject);
-          }
-          else {
-            //console.log(stream.results[0].alternatives[0].transcript);
-            var transcriptObject = {
-              transcript: stream.results[0].alternatives[0].transcript,
-              isfinal: stream.results[0].isFinal
-            };
+            resultEndTime = stream.results[0].resultEndTime.seconds * 1000 +
+            Math.round(stream.results[0].resultEndTime.nanos / 1000000);
+
+            let correctedTime =
+              resultEndTime - timeOffset + (streamingLimit * restartCounter);
 
             socket.broadcast.emit("getTheirTranscript", transcriptObject);
             translateText = transcriptObject;
-            //console.log("is final? " + JSON.stringify(translateText));
-
 
             if(stream.results[0].isFinal){
-              if(interactionMode=='continuous'){
-                isFinalEndTime = resultEndTime;
-                lastTranscriptWasFinal = true;
-              }
-              else{
-                socket.emit("stopRecording", true);
-              }
-              console.log("translate and send audio to other caller");
-              ttsTranslateAndSendAudio();
+              isFinalEndTime = resultEndTime;
+              lastTranscriptWasFinal = true;
+              ttsTranslateAndSendAudio(otherCallersVoiceCode);
             }
             else{
-              if(interactionMode=='continuous'){
-                lastTranscriptWasFinal = false;
-              }
-              translateOnly();
+              lastTranscriptWasFinal = false;
+              translateOnly(otherCallersVoiceCode);
             }
           }
+          else {
+            if(approveText){
+              socket.emit("textNeedsApproval", transcriptObject);
+              if(stream.results[0].isFinal){
+                socket.emit("stopRecording", true);
+              }
+            }
+            else {
 
+              socket.broadcast.emit("getTheirTranscript", transcriptObject);
+              translateText = transcriptObject;
+
+              if(stream.results[0].isFinal){
+                socket.emit("stopRecording", true);
+                ttsTranslateAndSendAudio(otherCallersVoiceCode);
+              }
+              else{
+                translateOnly(otherCallersVoiceCode);
+              }
+            }
+          }
         }
     };
 
