@@ -116,7 +116,7 @@ io.on('connection', (socket) => {
   socket.on('binaryStream', function(data) {
     if(interactionMode=='continuous'){
       if(newStream && (lastAudioArray.length !=0 )) {
-        console.log("new Stream? " + newStream + " last array length " + lastAudioArray.length);
+        //console.log("new Stream? " + newStream + " last array length " + lastAudioArray.length);
         let chunkTime = streamingLimit / lastAudioArray.length;
 
         if(chunkTime != 0){
@@ -157,15 +157,13 @@ io.on('connection', (socket) => {
 
   socket.on('getAvailableRoles', function(data) {
     io.sockets.emit("availableRoles", usernames);
-    console.log("available roles: " + usernames.length);
-    if(usernames.length==1){
-      socket.broadcast.emit("getInteractionMode", interactionMode);
+
+    if(usernames.length===1){
+      io.sockets.emit("getInteractionMode", interactionMode);
     }
     if(usernames.length==0){
-
-      socket.broadcast.emit("getInteractionMode", "enable");
+      io.sockets.emit("getInteractionMode", "enable");
     }
-    //socket.broadcast.emit("availableRoles", usernames);
   });
 
   socket.on("joinCall", function(data){

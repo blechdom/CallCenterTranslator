@@ -326,7 +326,7 @@ class CCConversation extends React.Component {
       this.setState({audio: true, started: true, myStatusText: "Microphone On" });
     }
     else{
-      //console.log("audio viz already happeneing");
+    
       audioVizData = animatedStreaming(this.audioContext, this.state.audio);
       this.setState({audio: true, started: true, audioVizData: audioVizData });
       let audioVizBuffer = audioVizData.buffer;
@@ -351,13 +351,13 @@ class CCConversation extends React.Component {
       this.state.socket.emit("clearTextBuffers", true);
     }
     if (this.state.audio) {
-      if(this.state.interactionMode!=='continuous'){
-        this.state.socket.emit('forceFinal', true);
-      }
+
+      this.state.socket.emit('forceFinal', true);
       this.stopListening();
       this.setState({started: false});
+
     } else {
-      //console.log("starting to listen");
+
       this.startListening();
     }
   }

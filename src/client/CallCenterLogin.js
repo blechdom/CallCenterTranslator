@@ -99,7 +99,7 @@ class CallCenterLogin extends React.Component {
       })
       //console.log("in available roles");
       for(var i in roles){
-        //console.log("roles: " + roles[i]);
+        console.log("roles: " + roles[i]);
         if (roles[i]=="agent"){
           this.setState({agentDisabled:true});
         }
@@ -113,7 +113,7 @@ class CallCenterLogin extends React.Component {
       this.state.socket.emit("resetMyData", true);
     });
     this.state.socket.on("getInteractionMode", (data) => {
-      //console.log("current Interaction " + data);
+      console.log("current Interaction " + data);
       if (data=="enable"){
         this.setState({  interactionDisabled: false  });
       }
