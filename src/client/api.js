@@ -1,5 +1,5 @@
 import openSocket from 'socket.io-client';
-const socket = openSocket();
+const socket = openSocket('http://localhost:8080');
 
 function getVoiceList(cb) {
   socket.emit('getVoiceList', true);
@@ -19,6 +19,9 @@ function setAutoMute(autoMute){
 function setApproveText(approveText){
   socket.emit("approveText", approveText);
 }
+function setPlayBothAudio(playBothAudio){
+  socket.emit("playBothAudio", playBothAudio);
+}
 
 export {
   socket,
@@ -26,4 +29,5 @@ export {
   setVoiceCode,
   setAutoMute,
   setApproveText,
+  setPlayBothAudio
 };

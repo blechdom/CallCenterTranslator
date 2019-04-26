@@ -17,7 +17,7 @@ import Select from '@material-ui/core/Select';
 import Checkbox from '@material-ui/core/Checkbox';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import HelpDialog from './HelpDialog';
-import { setAutoMute, setApproveText } from './api';
+import { setAutoMute, setApproveText, setPlayBothAudio } from './api';
 
 
 const styles = theme => ({
@@ -49,6 +49,7 @@ class CallCenterLogin extends React.Component {
       interactionDisabled: false,
       textApprovalRequired: false,
       approvalDisabled: false,
+      playBothAudio: true,
       muteOnPlayback: true,
       muteDisabled: true,
       helpOpen: false,
@@ -86,6 +87,9 @@ class CallCenterLogin extends React.Component {
     };
   handleTextApprovalCheckbox = (event) => {
       this.setState({ textApprovalRequired: event.target.checked }, () => setApproveText(this.state.textApprovalRequired));
+    };
+  handlePlayBothAudioCheckbox = (event) => {
+      this.setState({ playBothAudio: event.target.checked }, () => setPlayBothAudio(this.state.playBothAudio));
     };
   componentDidMount() {
 
@@ -213,7 +217,17 @@ class CallCenterLogin extends React.Component {
                     }
                     label="Approve Text Before Sending"
                   />
-
+                <FormControlLabel className={classes.checkbox}
+                  control={
+                    <Checkbox
+                      checked={this.state.playBothAudio}
+                      onChange={this.handlePlayBothAudioCheckbox}
+                      value="playBothAudio"
+                      color="primary"
+                    />
+                  }
+                  label="Play Audio from Both Callers"
+                />
               </FormGroup>
             </div>
           </Grid>

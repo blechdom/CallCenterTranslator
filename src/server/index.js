@@ -25,6 +25,7 @@ io.on('connection', (socket) => {
   let username = '',
     autoMute = true,
     approveText = false,
+    playBothAudio = true,
     speechClient = new speech.SpeechClient(),
     ttsClient = new textToSpeech.TextToSpeechClient(),
     translate = new Translate(),
@@ -43,7 +44,9 @@ io.on('connection', (socket) => {
     lastAudioArray = [],
     newStream = true,
     timeOffset = 0,
-    lastTranscriptWasFinal = false;
+    lastTranscriptWasFinal = false,
+    lastTranscript = '',
+    lastEndTime = 0;
 
   io.sockets.emit("updateYourself", usernames.length);
 
@@ -51,6 +54,7 @@ io.on('connection', (socket) => {
     username = '';
     autoMute = true;
     approveText = false;
+    playBothAudio = true;
     speechClient = new speech.SpeechClient();
     ttsClient = new textToSpeech.TextToSpeechClient();
     translate = new Translate();
@@ -70,6 +74,8 @@ io.on('connection', (socket) => {
     newStream = true;
     timeOffset = 0;
     lastTranscriptWasFinal = false;
+    lastTranscript = '';
+    lastEndTime = 0;
 
   io.sockets.emit("updateYourself", usernames.length);
   }
@@ -96,6 +102,10 @@ io.on('connection', (socket) => {
   socket.on('approveText', function(data) {
     console.log("approveText: " + data);
     approveText = data;
+  });
+  socket.on('playBothAudio', function(data) {
+    console.log("play both audio: " + data);
+    playBothAudio = data;
   });
   socket.on('speechLanguageCode', function(data) {
     console.log("speech language code: " + data);
@@ -207,6 +217,7 @@ io.on('connection', (socket) => {
       otherLanguage: otherLanguage,
       interactionMode: interactionMode,
       autoMute: autoMute,
+      playBothAudio: playBothAudio,
       approveText: approveText,
     };
 
@@ -397,6 +408,7 @@ io.on('connection', (socket) => {
         translation: translationConcatenated,
         isfinal: translateText.isfinal
       }
+
       socket.emit("getTranscript", translatedObject);
       socket.broadcast.emit("getTheirTranslation", translatedObject);
 
@@ -427,7 +439,12 @@ io.on('connection', (socket) => {
 
       const [response] =
         await ttsClient.synthesizeSpeech(ttsRequest);
-        socket.broadcast.emit('audiodata', response.audioContent);
+        if(playBothAudio){
+          io.sockets.emit('audiodata', response.audioContent);
+        }
+        else {
+          socket.broadcast.emit('audiodata', response.audioContent);
+        }
         io.sockets.emit("allStatus", username + ' playback');
     }
   }
@@ -512,9 +529,21 @@ io.on('connection', (socket) => {
             translateText = transcriptObject;
 
             if(stream.results[0].isFinal){
+              //test matches last is final, last transcript, last end time
+              if(lastTranscriptWasFinal &&
+                (lastTranscript===transcriptObject.transcript) &&
+                (lastEndTime===correctedTime)
+              ){
+                console.log("duplicate detected, do not send");
+              }
+              else{
+
+                ttsTranslateAndSendAudio(otherCallersVoiceCode);
+              }
               isFinalEndTime = resultEndTime;
               lastTranscriptWasFinal = true;
-              ttsTranslateAndSendAudio(otherCallersVoiceCode);
+              lastTranscript = transcriptObject.transcript;
+              lastEndTime = correctedTime;
             }
             else{
               lastTranscriptWasFinal = false;
